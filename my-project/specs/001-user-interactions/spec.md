@@ -8,6 +8,16 @@
 
 **Input**: User description: "Frontend de Usuario | Red Social de Inspiración Artística — funcionalidades transversales/de pantalla: like a publicaciones, publicar contenido con tags, buscar y filtrar publicaciones, reportar una publicación ajena, login e inicio de sesión, registro de cuenta, editar datos de perfil (excepto contraseña), seguir a otra persona, crear carpetas de posts guardados."
 
+## Clarifications
+
+### Session 2026-09-08
+
+- Q: ¿Los tags de una publicación son texto libre o deben validarse contra un vocabulario controlado del backend? → A: Vocabulario controlado — el usuario solo puede elegir tags de una lista provista por el backend mediante autocompletado.
+- Q: ¿Las carpetas de posts guardados son privadas, públicas o configurables? → A: Siempre públicas — visibles en el perfil de cualquier usuario que lo visite.
+- Q: ¿Cómo se valida en cliente el tipo y tamaño de archivo por tipo de contenido? → A: El frontend solo valida el tipo de archivo (extensión/MIME); el tamaño máximo lo valida exclusivamente el backend.
+- Q: ¿Cuál es el límite máximo de tags por publicación? → A: 10 tags máximo.
+- Q: ¿Existe un límite máximo de carpetas por usuario? → A: Límite duro de 100 carpetas.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Dar like a una publicación (Priority: P1)
@@ -55,12 +65,16 @@ perfil propio sin recargar la página.
 1. **Given** el formulario de publicación abierto, **When** el usuario adjunta un archivo de
    contenido (imagen, video, audio o texto enriquecido), **Then** el archivo queda asociado a la
    publicación en curso y el tipo de contenido se determina o se puede seleccionar.
-2. **Given** el formulario de publicación, **When** el usuario escribe un tag y confirma con Enter
-   o coma, **Then** el tag se muestra como chip removible mediante una acción de eliminar (×).
+2. **Given** el formulario de publicación, **When** el usuario busca un tag mediante autocompletado
+   y selecciona una opción del vocabulario controlado provisto por el backend, **Then** el tag se
+   muestra como chip removible mediante una acción de eliminar (×), hasta un máximo de 10 tags por
+   publicación.
 3. **Given** el formulario sin ningún archivo adjunto, **When** el usuario intenta enviarlo,
    **Then** el envío se bloquea y se indica que se requiere al menos un archivo.
-4. **Given** un archivo que no cumple el tipo o tamaño permitido, **When** el usuario lo adjunta,
-   **Then** se muestra un error claro en el cliente antes de intentar subirlo a la API.
+4. **Given** un archivo cuyo tipo (extensión/MIME) no está permitido para el tipo de contenido
+   seleccionado, **When** el usuario lo adjunta, **Then** se muestra un error claro en el cliente
+   antes de intentar subirlo a la API; la validación de tamaño máximo del archivo es responsabilidad
+   exclusiva del backend y se refleja mediante el error que este devuelva.
 5. **Given** un archivo válido en proceso de subida, **When** la subida está en curso,
    **Then** se muestra feedback visual (barra de progreso o spinner) sin bloquear la interfaz.
 6. **Given** una publicación enviada, **When** el backend responde dentro de los 5 segundos
@@ -284,8 +298,11 @@ desde la publicación, y verificando que aparece en el perfil con el conteo corr
    eliminan de la plataforma).
 5. **Given** un post guardado en una carpeta, **When** el usuario lo quita de la carpeta,
    **Then** el post no se elimina de la plataforma, solo de esa carpeta.
-6. **Given** una lista de hasta 50 carpetas, **When** se renderiza la sección de carpetas,
-   **Then** la interfaz no se degrada, usando scroll o paginación si es necesario.
+6. **Given** una lista de hasta 100 carpetas (límite máximo permitido), **When** se renderiza la
+   sección de carpetas, **Then** la interfaz no se degrada, usando scroll o paginación si es
+   necesario, y el sistema impide crear una carpeta adicional al alcanzar el límite.
+7. **Given** el perfil de cualquier usuario visitado por otra persona, **When** se renderiza,
+   **Then** las carpetas de ese usuario son visibles públicamente con su nombre y cantidad de posts.
 
 ---
 
@@ -310,8 +327,10 @@ desde la publicación, y verificando que aparece en el perfil con el conteo corr
 - **CB-07**: El usuario intenta seguir a alguien y la API devuelve un error (por ejemplo, límite de
   seguidos alcanzado). El botón debe revertirse a su estado anterior y mostrarse el mensaje de error
   específico que provea la API.
-- **CB-08**: El usuario edita su perfil e intenta subir una imagen que supera el tamaño permitido.
-  El error debe mostrarse en el cliente antes de enviar la llamada a la API.
+- **CB-08**: El usuario edita su perfil e intenta subir una imagen que supera el tamaño máximo
+  permitido por el backend. El frontend debe mostrar el mensaje de error específico devuelto por la
+  API (la validación de tamaño no ocurre en cliente), sin perder los demás datos ya ingresados en el
+  formulario.
 - **CB-09**: El usuario abre el formulario de publicación, completa datos, y cierra la pestaña o
   navega fuera. El navegador/aplicación debe advertir sobre cambios no guardados.
 - **CB-10**: El filtro de distancia está activo y el usuario revoca el permiso de geolocalización
@@ -333,12 +352,14 @@ desde la publicación, y verificando que aparece en el perfil con el conteo corr
   autenticarse.
 - **FR-005**: El formulario de publicación DEBE soportar los tipos de contenido IMAGEN, VIDEO,
   MUSICA y TUTORIAL, determinados por el archivo adjunto o seleccionables por el usuario.
-- **FR-006**: El sistema DEBE permitir agregar tags mediante chips interactivos, confirmando con
-  Enter o coma, y removibles individualmente mediante una acción de eliminar.
+- **FR-006**: El sistema DEBE permitir agregar tags exclusivamente desde un vocabulario controlado
+  provisto por el backend, mediante autocompletado; cada tag seleccionado se muestra como chip
+  removible individualmente, hasta un máximo de 10 tags por publicación.
 - **FR-007**: El sistema DEBE bloquear el envío del formulario de publicación si no hay al menos un
   archivo adjunto.
-- **FR-008**: El sistema DEBE validar en cliente el tipo y tamaño del archivo adjunto antes de
-  enviarlo a la API, mostrando un error claro cuando no cumpla los criterios permitidos.
+- **FR-008**: El sistema DEBE validar en cliente únicamente el tipo (extensión/MIME) del archivo
+  adjunto según el tipo de contenido seleccionado, mostrando un error claro cuando no cumpla; la
+  validación del tamaño máximo del archivo es responsabilidad exclusiva del backend.
 - **FR-009**: El sistema DEBE mostrar feedback visual (barra de progreso o spinner) mientras un
   archivo de publicación se está subiendo.
 - **FR-010**: El sistema DEBE mostrar un estado de carga durante el envío de una publicación sin
@@ -418,26 +439,33 @@ desde la publicación, y verificando que aparece en el perfil con el conteo corr
   aclarando que los posts originales no se eliminan de la plataforma.
 - **FR-046**: El sistema DEBE permitir quitar un post de una carpeta sin eliminarlo de la
   plataforma.
-- **FR-047**: La lista de carpetas del usuario DEBE soportar al menos 50 carpetas sin degradar la
-  interfaz, usando scroll o paginación si es necesario.
+- **FR-047**: La lista de carpetas del usuario DEBE soportar hasta un máximo de 100 carpetas sin
+  degradar la interfaz, usando scroll o paginación si es necesario; el sistema DEBE impedir la
+  creación de una nueva carpeta al alcanzar dicho límite.
 - **FR-048**: El frontend de usuario NUNCA DEBE operar con el rol ADMIN ni mostrar pantallas o
   acciones de moderación/administración.
+- **FR-049**: Las carpetas de posts guardados de un usuario DEBEN ser visibles públicamente en su
+  perfil, mostrando nombre y cantidad de posts, para cualquier visitante o usuario autenticado.
 
 ### Key Entities *(include if feature involves data)*
 
-- **Publicación**: contenido creado por un usuario (imagen, video, música, tutorial) con tags,
-  estado de like propio, contador de likes, estado de reporte propio del usuario actual, y reglas
-  de si el usuario actual puede editarla, eliminarla, likearla o reportarla según sea o no su autor.
+- **Publicación**: contenido creado por un usuario (imagen, video, música, tutorial) con hasta 10
+  tags seleccionados de un vocabulario controlado, estado de like propio, contador de likes, estado
+  de reporte propio del usuario actual, y reglas de si el usuario actual puede editarla, eliminarla,
+  likearla o reportarla según sea o no su autor.
 - **Usuario**: persona registrada (rol único USER en este módulo) con datos de perfil (nombre,
   apellido, bio, foto), estado de sesión, y relación de "seguir" respecto a otros usuarios.
 - **Filtro de búsqueda**: combinación de texto libre, estilo, técnica, tipo de contenido y distancia
   activa que se envía como parámetros a la API para resolver resultados de Descubrir.
 - **Desafío**: entidad de participación creativa (fuera del detalle de esta especificación, referida
   transversalmente por pertenecer al mismo módulo de usuario).
-- **Carpeta**: colección personal de posts guardados por el usuario, con nombre y cantidad de posts,
-  creable/renombrable/eliminable desde el perfil.
+- **Carpeta**: colección personal de posts guardados por el usuario, visible públicamente en su
+  perfil, con nombre y cantidad de posts, creable/renombrable/eliminable desde el perfil, hasta un
+  máximo de 100 carpetas por usuario.
 - **Motivo de reporte**: valor cerrado provisto por el backend, seleccionado al reportar una
   publicación ajena.
+- **Tag**: valor de un vocabulario controlado provisto por el backend, seleccionable mediante
+  autocompletado al publicar contenido.
 
 ## Success Criteria *(mandatory)*
 
@@ -459,14 +487,11 @@ desde la publicación, y verificando que aparece en el perfil con el conteo corr
 - **SC-006**: La interfaz de resultados de búsqueda y del feed de home nunca queda bloqueada
   esperando datos del backend: el 100% de los estados de espera muestran un indicador de carga
   (skeleton, spinner o equivalente).
-- **SC-007**: La lista de carpetas de un usuario con hasta 50 carpetas se renderiza sin degradación
-  perceptible (sin bloqueos de interacción) en el perfil.
+- **SC-007**: La lista de carpetas de un usuario con hasta 100 carpetas (límite máximo) se renderiza
+  sin degradación perceptible (sin bloqueos de interacción) en el perfil.
 
 ## Assumptions
 
-- **Límite de tags** *(ref. ambigüedad A1 del insumo original)*: hasta contar con una definición del
-  backend, se asume un límite razonable de 15 tags por publicación, validado en cliente; el límite
-  exacto debe confirmarse antes de la implementación final.
 - **Verificación de contraseña** *(ref. A4)*: el enlace "Cambiar contraseña" en edición de perfil
   navega a un flujo independiente fuera de alcance de esta especificación; el mecanismo de
   verificación (mail, código u otro) se especificará en un documento separado cuando se diseñe.
@@ -479,23 +504,9 @@ desde la publicación, y verificando que aparece en el perfil con el conteo corr
 - **Reporte y estado propio**: el frontend consulta y refleja únicamente el estado de reporte del
   usuario actual sobre una publicación (si ya la reportó o no), nunca el estado global de reportes
   de esa publicación por parte de otros usuarios.
-
-## Clarifications Needed
-
-Las siguientes decisiones tienen impacto significativo en el alcance o la experiencia del usuario y
-requieren definición antes de avanzar a planificación técnica detallada de las pantallas afectadas:
-
-- **[NEEDS CLARIFICATION: Vocabulario de tags]** ¿Los tags de una publicación son texto libre
-  ingresado por el usuario, o deben validarse contra un vocabulario controlado provisto por el
-  backend (lo cual requeriría autocompletado en el formulario de publicación)? Impacta directamente
-  el diseño del componente de tags en User Story 2.
-- **[NEEDS CLARIFICATION: Visibilidad de carpetas]** ¿Las carpetas de posts guardados son siempre
-  privadas, siempre públicas, o configurables por el usuario? Impacta si se muestran en el perfil
-  visitado por otros usuarios en User Story 9 y en la pantalla de perfil en general.
-- **[NEEDS CLARIFICATION: Tipos y límites de archivo por TipoContenido]** ¿Cuáles son los formatos
-  de archivo aceptados y el tamaño máximo permitido para cada tipo de contenido (IMAGEN, VIDEO,
-  MUSICA, TUTORIAL)? Impacta la validación en cliente de User Story 2 (AC de tipo/tamaño de
-  archivo) y los mensajes de error correspondientes.
+- **Origen del vocabulario controlado de tags**: se asume que el backend expone un endpoint de
+  búsqueda/autocompletado de tags; el contrato exacto de dicho endpoint se define en la fase de
+  planificación técnica.
 
 ## Out of Scope
 
@@ -509,3 +520,7 @@ requieren definición antes de avanzar a planificación técnica detallada de la
 - Cualquier operación o vista asociada a un rol distinto de USER.
 - Persistencia de geolocalización en servidor; el frontend solo activa/desactiva localmente y envía
   coordenadas cuando corresponde a una consulta puntual.
+- Validación del tamaño máximo de archivos subidos (responsabilidad exclusiva del backend); el
+  frontend solo valida el tipo de archivo en cliente.
+- Administración del vocabulario controlado de tags (alta/baja/edición de tags disponibles),
+  responsabilidad del backend; el frontend solo consume dicho vocabulario vía autocompletado.

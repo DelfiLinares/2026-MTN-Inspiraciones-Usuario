@@ -1,0 +1,85 @@
+/speckit.plan
+Planificar la implementación del frontend de usuario definida en:
+my-project/specs/001-user-interactions/spec.md
+
+No implementar código todavía.
+Solo generar o actualizar los documentos técnicos de planificación correspondientes.
+
+Contexto del proyecto:
+Este repo es el repo de especificación del frontend de usuario de la red social de inspiración artística.
+El módulo cubre exclusivamente la aplicación React de cara al usuario final, distinta del frontend de administración.
+Consume una API REST (Java/Spring Boot) que NO se implementa en este módulo ni en este plan.
+
+Stack frontend:
+- React con Vite
+- TypeScript
+- CSS simple (sin frameworks de UI)
+- Cliente HTTP (fetch o axios) para consumir la API REST del backend
+- No hay lógica de backend, persistencia ni moderación en este módulo
+
+Arquitectura del frontend (NON-NEGOTIABLE según constitution.md):
+Separar en cuatro capas:
+- Presentación: componentes React por pantalla (cuestionario, registro, login, home, desafíos, descubrir, perfil, editar perfil). Solo renderizan y delegan.
+- Dominio/modelos de UI: entidades livianas del lado cliente (Publicacion, Usuario, Filtro, Desafio, Carpeta) con sus reglas de visualización y habilitación de acciones encapsuladas.
+- Aplicación/servicios: casos de uso del cliente (autenticar, buscar con filtros, subir publicación, dar like, reportar, seguir usuario, gestionar carpetas, editar perfil).
+- Infraestructura: clientes HTTP hacia la API REST, manejo de tokens de sesión (mail-contraseña, Google, GitHub), acceso a geolocalización del navegador.
+Los componentes de presentación NUNCA invocan directamente fetch/axios; toda llamada pasa por la capa de servicios.
+
+Modelo de dominio de UI esperado:
+- Publicacion (sabe si el usuario actual puede editarla, eliminarla o reportarla; encapsula el estado del like)
+- Usuario (sabe si es el usuario propio; expone si ya sigue a otro usuario)
+- Filtro (encapsula los criterios de búsqueda activos y su serialización para la API)
+- Carpeta (contiene posts guardados; sabe si puede eliminarse)
+- TipoContenido como enum: IMAGEN, VIDEO, MUSICA, TUTORIAL
+- EstadoPublicacion como enum: ACTIVA, REPORTADA, ELIMINADA
+- TipoFiltro como enum: estilo, técnica, tipo de arte, distancia
+- RolUsuario como enum: USER (el frontend de usuario nunca opera con ADMIN)
+
+Funcionalidades a planificar (definidas en spec.md):
+- HU-01: Like a publicaciones (actualización optimista, revertir en error)
+- HU-02: Publicar contenido con tags (chips, validación de archivo en cliente, barra de progreso)
+- HU-03: Buscar y filtrar publicaciones (filtros resueltos en API, scroll infinito, estado vacío)
+- HU-04: Reportar publicación ajena (modal de motivos, deshabilitado en publicaciones propias)
+- HU-05: Login (mail/contraseña, Google, GitHub)
+- HU-06: Registro de cuenta (validación de contraseña, flujo hacia cuestionario de onboarding)
+- HU-07: Editar datos de perfil (sin campo de contraseña, previsualización de foto, advertencia de cambios no guardados)
+- HU-08: Seguir a otra persona (actualización optimista, confirmación para dejar de seguir)
+- HU-09: Crear y gestionar carpetas de posts guardados (crear, guardar post, eliminar, quitar post de carpeta)
+
+Reglas de negocio del cliente que DEBEN tener tests (Principio VII, NON-NEGOTIABLE):
+- Un usuario no puede reportar su propia publicación (botón deshabilitado).
+- Solo el autor ve habilitadas las opciones de editar/eliminar su publicación.
+- Un usuario no puede dar like a su propia publicación.
+- Un usuario no puede ver el botón "Seguir" en su propio perfil.
+- Un formulario sin campos obligatorios completos no puede enviarse.
+- El filtro de distancia no se habilita si la geolocalización no está activa.
+
+Requisitos de escalabilidad y rendimiento (Principio VIII):
+- Scroll infinito o paginación en home y resultados de búsqueda.
+- Lazy loading de imágenes y medios.
+- Filtros resueltos contra la API, nunca en memoria del cliente.
+- Todo punto de espera de red muestra estado de carga explícito (skeletons o spinners).
+- La búsqueda con filtros debe mostrar primeros resultados en no más de 2 segundos.
+- El flujo de subida de publicación no debe superar los 5 segundos de tiempo de respuesta percibido.
+
+Autenticación:
+- Soportar tres proveedores: mail-contraseña, Google y GitHub.
+- El token de sesión debe incluirse automáticamente en todas las llamadas HTTP.
+- Si el token expira durante la sesión, redirigir al login conservando el destino original.
+
+Fuera de alcance de este plan:
+- Backend, API REST, base de datos y migraciones.
+- Frontend de administración/moderación.
+- Cambio de contraseña (flujo independiente, se especificará por separado).
+- Pagos, multas, recomendaciones automáticas.
+- Envío de mails o notificaciones push.
+
+Generar:
+- plan.md (diseño técnico del frontend, decisiones de arquitectura de capas, patrones a aplicar, estrategia de autenticación, estrategia de estado global vs. local, Constitution Check explícito contra constitution.md)
+- research.md (alternativas evaluadas para manejo de estado, cliente HTTP, autenticación con Google/GitHub, scroll infinito, lazy loading; decisión tomada y justificación)
+- data-model.md (definición de los modelos de UI: Publicacion, Usuario, Filtro, Carpeta, Desafio; sus campos, métodos/reglas encapsuladas y enums correspondientes)
+- contracts/api-contracts.md (contratos esperados de la API REST que este frontend consume, por funcionalidad: endpoints, payloads de request/response, códigos de error relevantes para el cliente; documentar las ambigüedades marcadas en spec.md que requieren confirmación con el equipo de backend)
+- quickstart.md (cómo levantar el proyecto frontend localmente, variables de entorno necesarias, cómo apuntar a la API)
+
+Mantener trazabilidad con spec.md y constitution.md.
+No implementar código.

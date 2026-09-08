@@ -1,0 +1,358 @@
+/speckit-specify
+
+# Especificación — Frontend de Usuario | Red Social de Inspiración Artística
+
+> Módulo: aplicación React de cara al usuario final.
+> Alcance: funcionalidades de interacción disponibles en las pantallas existentes del frontend de usuario.
+> No implementar código durante esta fase.
+
+---
+
+## Índice
+
+1. Contexto y principios rectores
+2. Actores
+3. Historias de usuario con prioridad y criterios de aceptación
+4. Requisitos funcionales numerados
+5. Requisitos no funcionales
+6. Casos borde
+7. Ambigüedades marcadas
+8. Fuera de alcance
+
+---
+
+## 1. Contexto y principios rectores
+
+El frontend de usuario es una aplicación React que permite a personas descubrir contenido artístico, compartir sus creaciones e interactuar con la comunidad. Consume una API REST (Java/Spring Boot) y no implementa lógica de negocio que corresponda al backend.
+
+Las funcionalidades que cubre esta especificación son las disponibles transversalmente o en pantallas específicas del módulo de usuario:
+
+- Like a publicaciones
+- Publicar contenido con tags
+- Buscar y filtrar publicaciones
+- Reportar una publicación ajena
+- Login e inicio de sesión
+- Editar datos de perfil (excepto contraseña, que tiene flujo propio)
+- Seguir a otra persona
+- Crear carpetas de posts guardados
+
+---
+
+## 2. Actores
+
+**Usuario autenticado (USER):** persona registrada que puede interactuar con la plataforma. El frontend nunca opera con rol ADMIN.
+
+**Usuario no autenticado:** puede navegar contenido público, pero no puede hacer like, publicar, reportar, seguir ni guardar.
+
+**Sistema (API REST):** valida, persiste y responde. El frontend solo presenta y captura; no replica lógica del backend.
+
+---
+
+## 3. Historias de usuario
+
+### HU-01 — Like a una publicación
+
+**Como** usuario autenticado,
+**quiero** marcar con like una publicación que me inspire,
+**para** expresar apreciación y ayudar al sistema a conocer mis gustos.
+
+**Prioridad:** Alta
+
+**Criterios de aceptación:**
+
+- AC-01.1: El botón de like es visible en cada publicación dentro del home, descubrir y perfil de otro usuario.
+- AC-01.2: Si el usuario ya dio like, el botón aparece en estado activo (distinguible visualmente del estado inactivo).
+- AC-01.3: Al hacer clic en like, el contador de likes se actualiza de forma optimista sin recargar la página.
+- AC-01.4: Si la llamada a la API falla, el like se revierte y se muestra un mensaje de error no bloqueante.
+- AC-01.5: Un usuario no puede dar like a su propia publicación (el botón no debe estar habilitado para las publicaciones propias).
+- AC-01.6: Un usuario no autenticado que intenta dar like es redirigido o invitado a iniciar sesión.
+
+---
+
+### HU-02 — Publicar contenido con tags
+
+**Como** usuario autenticado,
+**quiero** crear una publicación con contenido (imagen, video, música, etc.) y agregarle tags descriptivos,
+**para** que otros usuarios puedan descubrir y filtrar mi trabajo.
+
+**Prioridad:** Alta
+
+**Criterios de aceptación:**
+
+- AC-02.1: El formulario de publicación permite adjuntar al menos un archivo de contenido (imagen, video, audio o texto enriquecido).
+- AC-02.2: El formulario permite agregar tags escritos por el usuario. Cada tag se agrega confirmando con Enter o coma; se muestra como chip removible.
+- AC-02.3: El formulario no se puede enviar sin al menos un archivo adjunto.
+- AC-02.4: El formulario valida en cliente el tipo y tamaño de archivo antes de enviarlo a la API (mostrar error claro si no cumple).
+- AC-02.5: El usuario recibe feedback visual mientras el archivo se sube (barra de progreso o spinner).
+- AC-02.6: La publicación debe poder completarse en no más de 5 segundos de tiempo de respuesta del backend (el frontend muestra estado de carga durante ese período sin bloquear la interfaz).
+- AC-02.7: Una vez publicado, el usuario ve la nueva publicación en su perfil sin necesidad de recargar la página.
+- AC-02.8: Si el envío falla, se muestra un error descriptivo y el formulario conserva los datos ya ingresados.
+
+**Ambigüedad marcada [A1]:** No está especificado si existe un límite máximo de tags por publicación. Se debe consultar con el backend y definir la validación correspondiente en el frontend.
+
+**Ambigüedad marcada [A2]:** No está definido si los tags se validan contra un vocabulario controlado del backend o si son texto libre. Si son controlados, el frontend debe implementar autocompletado.
+
+---
+
+### HU-03 — Buscar publicaciones y aplicar filtros
+
+**Como** usuario autenticado o visitante,
+**quiero** buscar publicaciones usando texto libre y aplicar filtros (estilo, técnica, tipo de contenido, distancia),
+**para** encontrar inspiración específica de forma rápida.
+
+**Prioridad:** Alta
+
+**Criterios de aceptación:**
+
+- AC-03.1: La pantalla Descubrir muestra un campo de búsqueda de texto libre visible y accesible desde el primer scroll.
+- AC-03.2: Los filtros disponibles son: estilo, técnica, tipo de contenido (IMAGEN, VIDEO, MUSICA, TUTORIAL) y distancia. Se muestran en un panel lateral o drawer colapsable.
+- AC-03.3: Aplicar o quitar un filtro actualiza los resultados sin recargar la página y sin necesidad de hacer clic en un botón "Buscar" adicional (excepto para texto libre, que puede requerir confirmar con Enter).
+- AC-03.4: Los filtros aplicados se muestran como chips activos en la interfaz, cada uno removible individualmente.
+- AC-03.5: La búsqueda se resuelve contra la API (no filtrando datos ya cargados en cliente).
+- AC-03.6: Los resultados se muestran con paginación o scroll infinito; no se trae la lista completa al cliente.
+- AC-03.7: Si no hay resultados, se muestra un estado vacío con mensaje claro y sugerencia de acción (ej.: "Probá con otros términos o quitá algún filtro").
+- AC-03.8: El filtro de distancia solo se habilita si el usuario activó la geolocalización. Si no, el filtro aparece deshabilitado con un mensaje explicativo.
+- AC-03.9: Mientras los resultados cargan, se muestran skeletons o placeholders para no dejar la pantalla en blanco.
+
+---
+
+### HU-04 — Reportar una publicación ajena
+
+**Como** usuario autenticado,
+**quiero** reportar una publicación que considero inapropiada,
+**para** alertar a los moderadores de contenido que viola las normas de la comunidad.
+
+**Prioridad:** Media
+
+**Criterios de aceptación:**
+
+- AC-04.1: El botón "Reportar" está disponible en cada publicación que no sea propia del usuario autenticado.
+- AC-04.2: Un usuario no puede ver habilitado el botón "Reportar" en sus propias publicaciones.
+- AC-04.3: Al hacer clic en "Reportar", se abre un modal o drawer con la selección del motivo del reporte (lista provista por el backend).
+- AC-04.4: El reporte no se envía si no se seleccionó un motivo.
+- AC-04.5: Tras enviar el reporte exitosamente, se muestra confirmación no bloqueante y el modal se cierra.
+- AC-04.6: Si el usuario ya reportó esa publicación, el botón aparece en estado deshabilitado o con texto "Ya reportaste esto" para evitar reportes duplicados.
+- AC-04.7: El frontend no muestra al usuario el resultado del proceso de moderación; esa lógica pertenece al frontend de administración.
+
+**Ambigüedad marcada [A3]:** No está definido si un usuario puede reportar una publicación que ya fue reportada por otro usuario. El frontend debe consultar con la API el estado del reporte propio, no el global.
+
+---
+
+### HU-05 — Login e inicio de sesión
+
+**Como** visitante,
+**quiero** iniciar sesión con mi cuenta (mail/contraseña, Google o GitHub),
+**para** acceder a las funcionalidades del usuario autenticado.
+
+**Prioridad:** Alta
+
+**Criterios de aceptación:**
+
+- AC-05.1: La pantalla de login ofrece claramente tres opciones: mail/contraseña, Google y GitHub.
+- AC-05.2: El formulario de mail/contraseña valida en cliente que ambos campos estén completos y que el mail tenga formato válido antes de enviar.
+- AC-05.3: Si las credenciales son incorrectas, se muestra un mensaje de error sin revelar cuál de los dos campos falló (seguridad básica).
+- AC-05.4: El login con Google y GitHub redirige al proveedor externo y maneja correctamente el callback de retorno.
+- AC-05.5: Tras iniciar sesión exitosamente, el usuario es redirigido a la pantalla de origen o al home si no había destino previo.
+- AC-05.6: El token de sesión se almacena de forma segura y se incluye en todas las llamadas a la API.
+- AC-05.7: El botón de submit se deshabilita mientras el login está en progreso para evitar envíos duplicados.
+- AC-05.8: Si el usuario ya está autenticado, acceder a la pantalla de login lo redirige al home.
+
+---
+
+### HU-06 — Registro de cuenta
+
+**Como** visitante,
+**quiero** registrar una cuenta nueva,
+**para** poder participar en la comunidad de inspiración artística.
+
+**Prioridad:** Alta
+
+**Criterios de aceptación:**
+
+- AC-06.1: El formulario de registro solicita: nombre, apellido, mail y contraseña (con confirmación).
+- AC-06.2: La contraseña debe cumplir criterios mínimos de seguridad (longitud mínima definida por el backend); el frontend indica en tiempo real si se cumplen.
+- AC-06.3: Si el mail ya está registrado, la API devuelve error y el frontend lo muestra de forma clara sin revelar información innecesaria.
+- AC-06.4: Tras el registro exitoso, se inicia el flujo de cuestionario de onboarding.
+- AC-06.5: El registro por Google y GitHub crea cuenta y autentica en un solo paso.
+
+---
+
+### HU-07 — Editar datos de perfil
+
+**Como** usuario autenticado,
+**quiero** actualizar mi información de perfil (nombre, apellido, bio, foto, etc.) sin tocar mi contraseña,
+**para** mantener mi identidad actualizada en la plataforma.
+
+**Prioridad:** Media
+
+**Criterios de aceptación:**
+
+- AC-07.1: La pantalla de edición de perfil permite modificar: nombre, apellido, bio/descripción, foto de perfil y otros campos de identidad (a confirmar con backend).
+- AC-07.2: El campo de contraseña no aparece en este formulario; se reemplaza por un enlace "Cambiar contraseña" que lleva a un flujo separado con verificación.
+- AC-07.3: El formulario valida en cliente los campos requeridos antes de enviar.
+- AC-07.4: Al guardar cambios exitosamente, el perfil visible se actualiza sin recargar la página.
+- AC-07.5: Si el usuario abandona el formulario con cambios no guardados, se le advierte antes de salir.
+- AC-07.6: La foto de perfil nueva se previsualiza antes de confirmar la subida.
+
+**Ambigüedad marcada [A4]:** La especificación menciona "cambiar contraseña aparte con una verificación". No está definido si esa verificación es por mail, por código SMS u otro mecanismo. Cuando ese flujo se diseñe, debe especificarse por separado.
+
+---
+
+### HU-08 — Seguir a otra persona
+
+**Como** usuario autenticado,
+**quiero** seguir el perfil de otro usuario,
+**para** ver su contenido de forma prioritaria en mi feed.
+
+**Prioridad:** Media
+
+**Criterios de aceptación:**
+
+- AC-08.1: El botón "Seguir" / "Siguiendo" es visible en el perfil de cualquier usuario que no sea el propio.
+- AC-08.2: Al hacer clic en "Siguiendo", se solicita confirmación antes de dejar de seguir (para evitar unfollows accidentales).
+- AC-08.3: El conteo de seguidores del perfil visitado se actualiza de forma optimista.
+- AC-08.4: Si la operación falla, se revierte el estado del botón y se muestra un error no bloqueante.
+- AC-08.5: Un usuario no puede ver el botón "Seguir" en su propio perfil.
+
+---
+
+### HU-09 — Crear carpetas de posts guardados
+
+**Como** usuario autenticado,
+**quiero** organizar los posts que me gustan en carpetas temáticas,
+**para** volver a encontrarlos fácilmente y curar mis inspiraciones.
+
+**Prioridad:** Media
+
+**Criterios de aceptación:**
+
+- AC-09.1: El usuario puede crear una carpeta nueva indicando al menos un nombre.
+- AC-09.2: Desde cualquier publicación, el usuario puede guardarla en una carpeta existente o crear una nueva en el mismo flujo.
+- AC-09.3: Las carpetas del usuario se visualizan en la sección de perfil, con nombre y cantidad de posts.
+- AC-09.4: El usuario puede eliminar una carpeta; al hacerlo, se le advierte que el contenido guardado se perderá (los posts originales no se eliminan).
+- AC-09.5: El usuario puede quitar un post de una carpeta sin eliminarlo de la plataforma.
+- AC-09.6: La lista de carpetas soporta al menos 50 carpetas sin degradar la interfaz (scroll o paginación si es necesario).
+
+**Ambigüedad marcada [A5]:** No está definido si las carpetas son privadas, públicas o configurables por el usuario. Impacta en si se muestran en el perfil público. Debe consultarse con el equipo.
+
+---
+
+## 4. Requisitos funcionales numerados
+
+**RF-01** El sistema debe mostrar el estado de like (activo/inactivo) de cada publicación de forma inmediata, sin esperar la respuesta de la API (actualización optimista).
+
+**RF-02** El formulario de publicación debe soportar los tipos de contenido: IMAGEN, VIDEO, MUSICA, TUTORIAL. El tipo se determina por el archivo adjunto o es seleccionable por el usuario.
+
+**RF-03** Los tags de una publicación deben ser ingresables mediante chips interactivos (agregar con Enter/coma, eliminar con ×).
+
+**RF-04** La búsqueda en Descubrir debe enviar los filtros activos como parámetros a la API, no filtrar en memoria del cliente.
+
+**RF-05** Los resultados de búsqueda y el home deben implementar paginación o scroll infinito.
+
+**RF-06** Las imágenes y medios deben cargarse con lazy loading para no bloquear la interfaz.
+
+**RF-07** El botón "Reportar" debe estar oculto o deshabilitado en las publicaciones propias del usuario autenticado.
+
+**RF-08** El sistema debe manejar los tres proveedores de autenticación: mail/contraseña, Google y GitHub.
+
+**RF-09** El token de sesión debe incluirse automáticamente en todas las llamadas HTTP a la API.
+
+**RF-10** La edición de perfil no debe incluir el campo de contraseña; ese flujo es independiente.
+
+**RF-11** El botón "Seguir"/"Siguiendo" no debe aparecer en el perfil propio del usuario.
+
+**RF-12** Las carpetas de posts guardados deben ser creables, renombrables y eliminables desde el perfil.
+
+**RF-13** Al guardar un post en carpeta, el usuario puede seleccionar una carpeta existente o crear una nueva en el mismo flujo (sin salir de la publicación).
+
+**RF-14** El frontend nunca debe operar con rol ADMIN ni mostrar pantallas de moderación o administración.
+
+**RF-15** Cualquier acción que requiera autenticación y sea ejecutada por un usuario no autenticado debe derivarlo al login, con retorno al destino original tras autenticarse.
+
+---
+
+## 5. Requisitos no funcionales
+
+**RNF-01 — Performance**
+- La consulta de búsqueda con filtros no debe tardar más de 2 segundos en mostrar los primeros resultados.
+- El tiempo de subida de una publicación no debe superar los 5 segundos (responsabilidad conjunta backend/frontend; el frontend muestra estado de carga durante ese período).
+- Las imágenes y medios deben usar lazy loading para no bloquear el render inicial.
+
+**RNF-02 — Usabilidad**
+- La interfaz debe permitir encontrar contenido de forma simple, rápida y clara.
+- Los filtros de búsqueda deben ser visibles y comprensibles sin necesidad de instrucciones adicionales.
+- Los estados de carga (skeletons, spinners) deben evitar que la interfaz se perciba bloqueada.
+- Los mensajes de error deben describir qué ocurrió y sugerir cómo resolverlo.
+
+**RNF-03 — Escalabilidad**
+- El frontend debe soportar una cantidad creciente de publicaciones y usuarios sin degradar la experiencia: scroll infinito o paginación, y filtros resueltos en API.
+
+**RNF-04 — Seguridad básica**
+- El token de sesión debe almacenarse de forma segura (no en localStorage expuesto; preferir httpOnly cookie o mecanismo equivalente a definir con el equipo).
+- Los errores de credenciales no deben revelar qué campo fue incorrecto.
+
+**RNF-05 — Separación de capas**
+- Ningún componente de presentación debe contener llamadas directas a fetch/axios; todas deben pasar por la capa de servicios.
+- Las reglas de visibilidad de acciones (quién puede editar, reportar, seguir) deben encapsularse en modelos de UI (Publicacion, Usuario), no repetirse en cada componente.
+
+**RNF-06 — Testabilidad**
+- Toda regla de negocio del cliente debe tener tests. Mínimo cubierto: un usuario no puede reportar su propia publicación; solo el autor ve habilitada la edición de su publicación; un formulario sin campos obligatorios no puede enviarse.
+
+**RNF-07 — Accesibilidad**
+- La interfaz debe ser navegable por teclado.
+- El foco visible debe estar siempre presente en elementos interactivos.
+- Los estados de carga deben comunicarse a lectores de pantalla (aria-live o equivalente).
+
+---
+
+## 6. Casos borde
+
+**CB-01** El usuario pierde conexión a internet mientras sube una publicación. El frontend debe detectar el error de red, mostrar un mensaje claro y permitir reintentar sin perder los datos del formulario.
+
+**CB-02** El usuario da like y quita like en rápida sucesión antes de que la API responda. El frontend debe debounce o serializar las llamadas para evitar estados inconsistentes.
+
+**CB-03** El usuario intenta guardar un post en una carpeta mientras la lista de carpetas aún está cargando. Debe mostrar un estado de carga y no permitir la acción hasta que la lista esté disponible.
+
+**CB-04** La búsqueda devuelve un resultado vacío por filtros muy restrictivos. La pantalla no debe quedarse en blanco: mostrar mensaje vacío con opción de limpiar filtros.
+
+**CB-05** El usuario llega al final del scroll infinito y no hay más resultados. Debe mostrarse un indicador de "fin de resultados", no un spinner infinito.
+
+**CB-06** El token de sesión expira mientras el usuario navega. Al intentar cualquier acción protegida, el frontend debe redirigir al login y conservar el destino para redirigir de vuelta tras autenticarse.
+
+**CB-07** El usuario intenta seguir a alguien y la API devuelve error (ej.: límite de seguidos alcanzado). El botón se revierte y se muestra el mensaje de error específico que provea la API.
+
+**CB-08** El usuario edita su perfil y la imagen que intenta subir supera el tamaño permitido. El error debe mostrarse antes de enviar la llamada a la API (validación en cliente).
+
+**CB-09** El usuario abre el formulario de publicación, completa datos, y cierra el tab o navega fuera. El navegador debe advertir sobre cambios no guardados (beforeunload o equivalente en React Router).
+
+**CB-10** El filtro de distancia está activo y el usuario revoca el permiso de geolocalización desde el navegador. El filtro debe deshabilitarse automáticamente y avisar al usuario.
+
+---
+
+## 7. Ambigüedades marcadas
+
+| ID | Descripción | Impacto | Acción requerida |
+|----|-------------|---------|-----------------|
+| A1 | Límite máximo de tags por publicación | Validación en formulario | Consultar con backend y definir |
+| A2 | Tags libres vs. vocabulario controlado | Autocompletado vs. input libre | Consultar con backend |
+| A3 | Comportamiento del botón "Reportar" si la publicación ya tiene reportes de otros usuarios | Estado del botón | Definir: el frontend solo consulta el reporte propio del usuario |
+| A4 | Mecanismo de verificación para cambio de contraseña (mail, SMS, otro) | Flujo independiente | Especificar en una HU separada cuando se diseñe |
+| A5 | Visibilidad de carpetas (privadas, públicas o configurables) | Perfil público | Consultar con el equipo de producto |
+| A6 | Campos editables de perfil más allá de nombre/apellido/bio/foto | Formulario de edición | Consultar contrato de API |
+| A7 | Tipos de contenido aceptados por TipoContenido y límites de tamaño/formato por tipo | Validaciones de subida | Consultar con backend |
+
+---
+
+## 8. Fuera de alcance de este módulo
+
+- Pantallas o funcionalidades de administración/moderación (revisión de reportes, promoción de admins, borrado administrativo).
+- Lógica de recomendaciones, rankings o cálculo de feed (responsabilidad del backend).
+- Pagos, multas o compra de contenido.
+- Envío de mails o notificaciones push (responsabilidad del backend/infraestructura).
+- Cambio de contraseña (flujo independiente, se especificará por separado).
+- Login avanzado por roles más allá de USER.
+- Geolocalización persistente en servidor (el frontend solo activa/desactiva y envía coordenadas cuando corresponde).
+
+---
+
+*Documento generado en fase de especificación. No implementar código hasta completar la revisión de ambigüedades marcadas con el equipo.*

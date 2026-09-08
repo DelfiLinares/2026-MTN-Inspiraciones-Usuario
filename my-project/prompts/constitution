@@ -1,0 +1,90 @@
+/speckit.constitution
+
+Este proyecto es una red social de inspiración artística donde usuarios y artistas pueden compartir sus
+creaciones (dibujos, música, esculturas, etc.), inspirarse en las de otros, descubrir ubicaciones físicas
+de inspiración, explorar música y samples, y participar en desafíos creativos.
+
+El presente constitution aplica exclusivamente al módulo de FRONTEND DE USUARIO (aplicación React de
+cara al usuario final, distinta de la aplicación de administración/moderación). Su responsabilidad es
+construir la interfaz con la que el usuario final interactúa a través de las siguientes pantallas:
+cuestionario, registro, login, home, desafíos, descubrir, perfil del usuario y editar perfil del usuario.
+
+Este módulo consume la API REST del backend (Java/Spring Boot) y no implementa lógica de negocio que le
+corresponda al backend (persistencia, cálculo de rankings/recomendaciones, moderación, envío de mails,
+etc.). Su rol es presentar esos datos y capturar la interacción del usuario de forma usable, rápida y clara.
+
+Principios obligatorios:
+
+1. La especificación manda sobre la implementación. No se debe programar ninguna pantalla, componente o
+   flujo que no esté trazado a una historia de usuario o requisito del documento de alcance. El módulo
+   trabaja únicamente sobre las pantallas: cuestionario, registro, login, home, desafíos, descubrir,
+   perfil del usuario y editar perfil del usuario.
+
+2. El dominio de UI debe modelarse con orientación a objetos real cuando exista lógica de negocio en el
+   cliente (validación de formularios, reglas de visibilidad de acciones, armado de filtros de búsqueda,
+   estado de un desafío, etc.). Evitar componentes/hooks anémicos que solo muevan datos sin encapsular
+   sus reglas. Ejemplo: un modelo de Publicacion en el frontend sabe si el usuario actual puede editarla o
+   eliminarla (autor o admin), sin repetir esa condición en cada componente.
+
+3. Separar responsabilidades por capa dentro del frontend:
+   - presentación: componentes React de cada pantalla (cuestionario, registro, login, home, desafíos,
+     descubrir, perfil, editar perfil).
+   - dominio/modelos de UI: entidades livianas del lado cliente (Publicacion, Usuario, Filtro, Desafio,
+     Carpeta) con sus reglas de visualización/edición.
+   - aplicación/servicios: casos de uso de cliente (autenticar, buscar con filtros, subir publicación,
+     proponer desafío, editar perfil, activar/desactivar geolocalización).
+   - infraestructura: clientes HTTP hacia la API REST (Java/Spring Boot), manejo de tokens de sesión
+     (mail-contraseña, Google, GitHub), acceso a geolocalización del navegador/dispositivo.
+   No mezclar llamadas a la API directamente dentro de componentes de presentación: deben pasar por la
+   capa de servicios.
+
+4. Evitar lógica duplicada, componentes gigantes, validaciones de formularios repetidas en cada pantalla
+   y mezcla de responsabilidades (un componente de presentación no debe contener reglas de negocio ni
+   llamadas directas a fetch/axios).
+
+5. Usar enums o value objects (constantes tipadas) para representar valores cerrados que vienen del
+   backend o se usan en el cliente. Ejemplos: TipoContenido (IMAGEN, VIDEO, MUSICA, TUTORIAL),
+   EstadoPublicacion (ACTIVA, REPORTADA, ELIMINADA), TipoFiltro (estilo, técnica, tipo de arte, distancia),
+   RolUsuario (USER) — el frontend de usuario nunca opera con rol ADMIN.
+
+6. Aplicar patrones de diseño solo si simplifican el diseño de la UI (por ejemplo, un patrón contenedor/
+   presentacional para separar lógica de estado de la vista, o un patrón de estrategia para distintos
+   proveedores de login). No forzar patrones donde una solución simple alcance.
+
+7. Toda regla de negocio importante que viva en el frontend debe tener tests. Ejemplos: un usuario no
+   puede reportar su propia publicación (el botón de reportar no debe habilitarse); solo el autor puede
+   ver habilitada la opción de editar/eliminar su publicación; el formulario de propuesta de desafío no
+   se envía si faltan campos obligatorios.
+
+8. El sistema debe poder escalar en cantidad de publicaciones y usuarios sin degradar la experiencia:
+   paginación o scroll infinito en resultados de búsqueda y home, carga diferida (lazy loading) de
+   imágenes/medios, y filtros que se resuelvan contra la API (no trayendo listas completas al cliente
+   para filtrar en memoria). La interacción del usuario no debe verse bloqueada mientras se esperan datos
+   del backend (usar estados de carga).
+
+9. La interfaz debe priorizar usabilidad: encontrar contenido inspirador debe ser simple, rápido y claro.
+   El buscador con filtros laterales (estilo, tipo de arte, técnica, distancia) debe seguir el modelo
+   descripto en el documento de alcance. Las pantallas de registro/login deben soportar mail-contraseña,
+   Google y GitHub de forma clara. El flujo de subida de contenido debe percibirse como ágil, en línea con
+   el requisito de backend de no superar los 5 segundos.
+
+10. No implementar código durante las fases de especificación, aclaración, checklist, planificación y
+    generación de tareas. Solo crear o actualizar los documentos correspondientes.
+
+Pantallas y alcance funcional del módulo:
+- Cuestionario: onboarding/preguntas iniciales para calibrar intereses artísticos del usuario nuevo.
+- Registro / Login: alta de cuenta y autenticación vía mail-contraseña, Google y GitHub.
+- Home: feed principal con publicaciones recomendadas/relevantes para el usuario.
+- Descubrir: búsqueda con filtros (estilo, técnica, tipo de contenido), resultados de obras, ubicaciones
+  de inspiración, tutoriales y música; mapa de lugares de inspiración; activación/desactivación de
+  geolocalización por el usuario.
+- Desafíos: visualización de desafíos diarios/semanales, participación, y formulario para proponer
+  nuevos desafíos.
+- Perfil del usuario / Editar perfil: visualización de publicaciones, carpetas e inspiraciones guardadas
+  propias; edición de datos de perfil.
+- Interacción transversal disponible en pantallas de contenido: likes, comentarios y reporte de
+  publicaciones ajenas.
+
+Fuera de alcance de este módulo: cualquier pantalla o funcionalidad de administración/moderación
+(gestión de usuarios, borrado administrativo, promoción de admins, revisión de reportes), que corresponde
+al frontend de administración.

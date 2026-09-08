@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,10 +31,9 @@
 
 ## Notes
 
-- 3 marcadores `[NEEDS CLARIFICATION]` permanecen intencionalmente en la sección "Clarifications
-  Needed" (vocabulario de tags, visibilidad de carpetas, tipos/límites de archivo por
-  `TipoContenido`), dentro del límite máximo de 3 permitido. Deben resolverse con `/speckit.clarify`
-  antes de avanzar a `/speckit.plan`.
-- El resto de las ambigüedades originales del insumo (A1, A3, A4, A6) se resolvieron como supuestos
-  documentados en la sección "Assumptions", por tener menor impacto en el alcance o ya contar con
-  una definición operativa clara en el insumo del usuario.
+- Los 3 marcadores `[NEEDS CLARIFICATION]` (vocabulario de tags, visibilidad de carpetas,
+  tipos/límites de archivo por `TipoContenido`) se resolvieron en la sesión de clarificación
+  `2026-09-08` y quedaron integrados en `## Clarifications` de `spec.md`, junto con dos decisiones
+  adicionales (límite de 10 tags y límite de 100 carpetas) que reemplazan los supuestos previos.
+- El resto de las ambigüedades originales del insumo (A4, A6) permanecen como supuestos
+  documentados en la sección "Assumptions", por tener menor impacto en el alcance.
