@@ -58,6 +58,7 @@ frontend/
 
 - [ ] T011 Crear modelo de dominio `Usuario` (`esPropio()`, `puedeVerBotonSeguir()`, `aplicarSeguirOptimista()`, `aplicarDejarDeSeguirOptimista()`, `revertirCambioSeguimiento()`) en `frontend/src/domain/Usuario.ts` — depende de T009
 - [ ] T012 [P] Tests unitarios de reglas de negocio de `Usuario` (botón "Seguir" oculto en perfil propio — FR-040) en `frontend/tests/domain/Usuario.test.ts` — depende de T011
+- [ ] T090 [P] Tests unitarios de `Usuario.aplicarSeguirOptimista()` / `aplicarDejarDeSeguirOptimista()` / `revertirCambioSeguimiento()` (actualización optimista del contador de seguidores y su reversión ante error — FR-042) en `frontend/tests/domain/Usuario.seguir.test.ts` — depende de T011
 
 ### Dominio compartido: Publicacion (usado por like, publicar, buscar, reportar)
 
@@ -100,7 +101,8 @@ frontend/
 - [ ] T028 [US1] Implementar componente presentacional `LikeButton` (usa `Publicacion.puedeDarLike()`, redirige a login si no autenticado — FR-004) en `frontend/src/components/publicacion/LikeButton.tsx` — depende de T027, T020
 - [ ] T029 [P] [US1] Test de componente: `LikeButton` deshabilitado en publicación propia en `frontend/tests/components/LikeButton.test.tsx` — depende de T028
 - [ ] T030 [US1] Implementar `PublicacionCard` (integra `LikeButton` y `LazyMedia`) en `frontend/src/components/publicacion/PublicacionCard.tsx` — depende de T028, T025
-- [ ] T031 [US1] Implementar `HomePage` (feed con `useInfiniteList` + `PublicacionCard` + skeletons) en `frontend/src/pages/home/HomePage.tsx` — depende de T026, T030, T022
+- [ ] T088 [US1] Implementar `feedService` (`GET /api/feed` con paginación por cursor, misma forma de respuesta que `busquedaService`) en `frontend/src/services/feedService.ts` — depende de T017
+- [ ] T031 [US1] Implementar `HomePage` (feed real vía `feedService` + `useInfiniteList` + `PublicacionCard` + skeletons) en `frontend/src/pages/home/HomePage.tsx` — depende de T026, T030, T022, T088
 
 **Checkpoint**: User Story 1 (Like) funcional y testeable de forma independiente — MVP alcanzado
 
@@ -122,15 +124,16 @@ frontend/
 
 ### Implementation for User Story 2
 
-- [ ] T035 [P] [US2] Implementar `archivoValidacion` (valida tipo/MIME por `TipoContenido`) en `frontend/src/services/archivoValidacion.ts` — depende de T006, T033
-- [ ] T036 [P] [US2] Implementar `tagsService` (autocompletado vía `GET /api/tags`, límite de 10 — FR-006) en `frontend/src/services/tagsService.ts` — depende de T017, T032
-- [ ] T037 [US2] Extender `publicacionService` con `crearPublicacion()` (subida multipart con barra de progreso — FR-009) en `frontend/src/services/publicacionService.ts` — depende de T027, T035
+- [ ] T035 [P] [US2] ⚠️ Requiere confirmación de backend antes de implementar (B4 — MIME types permitidos por tipo de contenido, ver `contracts/api-contracts.md`). Implementar `archivoValidacion` (valida tipo/MIME por `TipoContenido`) en `frontend/src/services/archivoValidacion.ts` — depende de T006, T033
+- [ ] T036 [P] [US2] ⚠️ Requiere confirmación de backend antes de implementar (B3 — contrato exacto de `GET /api/tags`, paginación/límite). Implementar `tagsService` (autocompletado vía `GET /api/tags`, límite de 10 — FR-006) en `frontend/src/services/tagsService.ts` — depende de T017, T032
+- [ ] T037 [US2] Extender `publicacionService` con `crearPublicacion()` (subida multipart, expone estado/porcentaje de progreso como valor de retorno — FR-009; la barra de progreso visual se implementa en T040) en `frontend/src/services/publicacionService.ts` — depende de T027, T035
 - [ ] T038 [US2] Implementar `usePublicacionForm` (estado del formulario, conserva datos ante error — FR-012) en `frontend/src/services/usePublicacionForm.ts` — depende de T036, T037, T034
 - [ ] T039 [US2] Implementar `TagChip` y `TagAutocomplete` en `frontend/src/components/publicacion/TagChip.tsx` y `frontend/src/components/publicacion/TagAutocomplete.tsx` — depende de T036
-- [ ] T040 [US2] Implementar modal `PublicacionForm` (adjuntar archivo, tags, estado de carga ≤5s — FR-010) en `frontend/src/components/publicacion/PublicacionForm.tsx` — depende de T038, T039
+- [ ] T040 [US2] Implementar modal `PublicacionForm` (adjuntar archivo, tags, barra de progreso/spinner de subida, estado de carga ≤5s — FR-009, FR-010) en `frontend/src/components/publicacion/PublicacionForm.tsx` — depende de T038, T039
 - [ ] T041 [US2] Integrar botón "Nueva publicación" en `HomePage` para abrir `PublicacionForm` en `frontend/src/pages/home/HomePage.tsx` — depende de T040, T031
+- [ ] T087 [US2] Mostrar publicaciones propias en `PerfilPage` sin recargar la página tras crear una publicación (cierra FR-011) en `frontend/src/pages/perfil/PerfilPage.tsx` — depende de T041, T065
 
-**Checkpoint**: User Stories 1 y 2 funcionales de forma independiente
+**Checkpoint**: User Stories 1 y 2 funcionales de forma independiente (incluye FR-011: la publicación nueva aparece tanto en Home como en el propio perfil)
 
 ---
 
@@ -147,11 +150,12 @@ frontend/
 ### Implementation for User Story 3
 
 - [ ] T043 [US3] Crear modelo de dominio `Filtro` en `frontend/src/domain/Filtro.ts` — depende de T008, T042
-- [ ] T044 [US3] Implementar `busquedaService` (búsqueda con filtros vía `GET /api/publicaciones/buscar`, paginación por cursor) en `frontend/src/services/busquedaService.ts` — depende de T017, T043
-- [ ] T045 [P] [US3] Implementar `FiltroPanel` (drawer lateral de filtros) en `frontend/src/components/filtros/FiltroPanel.tsx` — depende de T043
+- [ ] T044 [US3] ⚠️ Requiere confirmación de backend antes de implementar (B5 — mecanismo de paginación: cursor opaco vs. `page`/`size`). Implementar `busquedaService` (búsqueda con filtros vía `GET /api/publicaciones/buscar`, paginación por cursor) en `frontend/src/services/busquedaService.ts` — depende de T017, T043
+- [ ] T045 [P] [US3] ⚠️ Requiere confirmación de backend antes de implementar (B6 — origen del catálogo de estilos/técnicas, endpoint propio vs. embebido). Implementar `FiltroPanel` (drawer lateral de filtros) en `frontend/src/components/filtros/FiltroPanel.tsx` — depende de T043, T089
 - [ ] T046 [P] [US3] Implementar `FiltroChip` (chip removible individualmente) en `frontend/src/components/filtros/FiltroChip.tsx` — depende de T043
-- [ ] T047 [US3] Implementar `useDescubrirFiltros` (orquesta `Filtro` + `busquedaService` + `useInfiniteList`) en `frontend/src/services/useDescubrirFiltros.ts` — depende de T044, T026, T043
+- [ ] T047 [US3] ⚠️ Requiere confirmación de backend antes de implementar (B5 — mecanismo de paginación, mismo alcance que T044). Implementar `useDescubrirFiltros` (orquesta `Filtro` + `busquedaService` + `useInfiniteList`) en `frontend/src/services/useDescubrirFiltros.ts` — depende de T044, T026, T043
 - [ ] T048 [US3] Implementar `DescubrirPage` (búsqueda de texto libre, `FiltroPanel`, skeletons, `EmptyState`, indicador de fin de resultados — CB-04, CB-05) en `frontend/src/pages/descubrir/DescubrirPage.tsx` — depende de T047, T045, T046, T022, T024
+- [ ] T089 [P] [US3] ⚠️ Requiere confirmación de backend antes de implementar (B6 — si el catálogo de estilos/técnicas es un endpoint propio o viene embebido en otra respuesta). Implementar `filtroOpcionesService` (`GET /api/filtros/opciones`, provee estilos/técnicas para poblar `FiltroPanel`) en `frontend/src/services/filtroOpcionesService.ts` — depende de T017
 
 **Checkpoint**: User Stories 1, 2 y 3 funcionales de forma independiente
 
@@ -169,12 +173,15 @@ frontend/
 
 ### Implementation for User Story 4
 
-- [ ] T050 [P] [US4] Implementar `mailPasswordProvider` (estrategia mail/contraseña) en `frontend/src/infrastructure/authProviders/mailPasswordProvider.ts` — depende de T017
-- [ ] T051 [P] [US4] Implementar `googleProvider` (estrategia OAuth con redirección) en `frontend/src/infrastructure/authProviders/googleProvider.ts` — depende de T017
-- [ ] T052 [P] [US4] Implementar `githubProvider` (estrategia OAuth con redirección) en `frontend/src/infrastructure/authProviders/githubProvider.ts` — depende de T017
+- [ ] T050 [P] [US4] ⚠️ Requiere confirmación de backend antes de implementar (B2 — contrato exacto de URL/flujo de callback OAuth, aplica indirectamente a la orquestación de proveedores). Implementar `mailPasswordProvider` (estrategia mail/contraseña, no afectado por B2) en `frontend/src/infrastructure/authProviders/mailPasswordProvider.ts` — depende de T017
+- [ ] T051 [P] [US4] ⚠️ Requiere confirmación de backend antes de implementar (B2 — contrato exacto de URL/flujo de callback OAuth). Implementar `googleProvider` (estrategia OAuth con redirección) en `frontend/src/infrastructure/authProviders/googleProvider.ts` — depende de T017
+- [ ] T052 [P] [US4] ⚠️ Requiere confirmación de backend antes de implementar (B2 — contrato exacto de URL/flujo de callback OAuth). Implementar `githubProvider` (estrategia OAuth con redirección) en `frontend/src/infrastructure/authProviders/githubProvider.ts` — depende de T017
 - [ ] T053 [US4] Implementar `authService` (orquesta los tres proveedores, login/logout, alimenta `AuthContext`) en `frontend/src/services/authService.ts` — depende de T050, T051, T052, T020
-- [ ] T054 [US4] Implementar `LoginPage` (tres opciones, validación cliente, error genérico, submit deshabilitado en progreso, redirect si ya autenticado — FR-026..FR-029) en `frontend/src/pages/login/LoginPage.tsx` — depende de T053, T049
-- [ ] T055 [US4] Implementar `AuthCallbackPage` (maneja retorno de OAuth Google/GitHub) en `frontend/src/pages/login/AuthCallbackPage.tsx` — depende de T053
+- [ ] T054 [US4] Implementar `LoginPage` — formulario base con las tres opciones (mail/contraseña, Google, GitHub) y validación en cliente de campos vacíos/mail inválido (FR-026) en `frontend/src/pages/login/LoginPage.tsx` — depende de T053, T049
+- [ ] T091 [P] [US4] Test unitario/componente: mensaje de error genérico ante credenciales incorrectas, sin revelar el campo específico (FR-027) en `frontend/tests/components/LoginPage.errorGenerico.test.tsx` — depende de T054
+- [ ] T092 [US4] Implementar deshabilitación del botón de submit mientras el login está en progreso, para evitar envíos duplicados (FR-028) en `frontend/src/pages/login/LoginPage.tsx` — depende de T054, T091
+- [ ] T093 [US4] ⚠️ Requiere confirmación de backend antes de implementar (B2, indirectamente, ya que la redirección aplica también al retorno de OAuth). Implementar redirección de un usuario ya autenticado que accede a `/login` hacia el home (FR-029) en `frontend/src/pages/login/LoginPage.tsx` — depende de T054, T020
+- [ ] T055 [US4] ⚠️ Requiere confirmación de backend antes de implementar (B2 — contrato exacto de URL/flujo de callback OAuth). Implementar `AuthCallbackPage` (maneja retorno de OAuth Google/GitHub) en `frontend/src/pages/login/AuthCallbackPage.tsx` — depende de T053
 - [ ] T056 [US4] Integrar redirección a login con conservación de destino original en el guard de rutas (CB-06) en `frontend/src/routes/index.tsx` — depende de T021, T053
 
 **Checkpoint**: User Stories 1–4 funcionales de forma independiente
@@ -189,12 +196,12 @@ frontend/
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T057 [P] [US5] Test unitario: formulario de registro bloquea envío con campos incompletos o contraseñas que no coinciden (FR-031) en `frontend/tests/services/registroForm.test.ts`
+- [ ] T057 [P] [US5] ⚠️ Requiere confirmación de backend antes de implementar (B1 — criterios exactos de fortaleza de contraseña). Test unitario: formulario de registro bloquea envío con campos incompletos o contraseñas que no coinciden (FR-031) en `frontend/tests/services/registroForm.test.ts`
 
 ### Implementation for User Story 5
 
 - [ ] T058 [US5] Extender `authService` con `registrar()` (`POST /api/auth/register`, manejo de error `EMAIL_YA_REGISTRADO` — FR-032) en `frontend/src/services/authService.ts` — depende de T053
-- [ ] T059 [US5] Implementar `RegistroPage` (formulario completo, indicador de fortaleza de contraseña en tiempo real, registro social) en `frontend/src/pages/registro/RegistroPage.tsx` — depende de T058, T057
+- [ ] T059 [US5] ⚠️ Requiere confirmación de backend antes de implementar (B1 — criterios exactos de fortaleza de contraseña, necesarios para el indicador en tiempo real). Implementar `RegistroPage` (formulario completo, indicador de fortaleza de contraseña en tiempo real, registro social) en `frontend/src/pages/registro/RegistroPage.tsx` — depende de T058, T057
 - [ ] T060 [US5] Implementar `CuestionarioPage` (onboarding post-registro — FR-033) en `frontend/src/pages/cuestionario/CuestionarioPage.tsx` — depende de T059
 
 **Checkpoint**: User Stories 1–5 (todas las P1) funcionales de forma independiente
@@ -213,9 +220,9 @@ frontend/
 
 ### Implementation for User Story 6
 
-- [ ] T062 [US6] Implementar `perfilService` (`GET /api/usuarios/{id}`, `PATCH /api/usuarios/me`) en `frontend/src/services/perfilService.ts` — depende de T017, T011
+- [ ] T062 [US6] ⚠️ Requiere confirmación de backend antes de implementar (B7 — lista definitiva de campos editables de perfil más allá de nombre/apellido/bio/foto). Implementar `perfilService` (`GET /api/usuarios/{id}`, `PATCH /api/usuarios/me`) en `frontend/src/services/perfilService.ts` — depende de T017, T011
 - [ ] T063 [US6] Implementar `usePerfilEdicion` (estado del formulario, previsualización de foto, advertencia de cambios no guardados — FR-038, FR-039) en `frontend/src/services/usePerfilEdicion.ts` — depende de T062, T061
-- [ ] T064 [US6] Implementar `EditarPerfilPage` (sin campo de contraseña, enlace "Cambiar contraseña" — FR-035) en `frontend/src/pages/editar-perfil/EditarPerfilPage.tsx` — depende de T063
+- [ ] T064 [US6] ⚠️ Requiere confirmación de backend antes de implementar (B7 — lista definitiva de campos editables de perfil). Implementar `EditarPerfilPage` (sin campo de contraseña, enlace "Cambiar contraseña" — FR-035) en `frontend/src/pages/editar-perfil/EditarPerfilPage.tsx` — depende de T063
 - [ ] T065 [US6] Implementar `PerfilPage` (visualización de datos propios/ajenos usando `Usuario.esPropio()`) en `frontend/src/pages/perfil/PerfilPage.tsx` — depende de T062, T011
 
 **Checkpoint**: User Stories 1–6 funcionales de forma independiente
@@ -277,7 +284,8 @@ frontend/
 - [ ] T077 [US9] Implementar `carpetaService` (crear/renombrar/eliminar carpeta, guardar/quitar post — FR-043..FR-046) en `frontend/src/services/carpetaService.ts` — depende de T017, T076
 - [ ] T078 [P] [US9] Implementar `CarpetaCard` en `frontend/src/components/carpetas/CarpetaCard.tsx` — depende de T076
 - [ ] T079 [P] [US9] Implementar `GuardarEnCarpetaModal` (seleccionar carpeta existente o crear una nueva en el mismo flujo — FR-044) en `frontend/src/components/carpetas/GuardarEnCarpetaModal.tsx` — depende de T077
-- [ ] T080 [US9] Integrar sección de carpetas (crear, listar hasta 100, eliminar con advertencia — FR-045) en `PerfilPage` en `frontend/src/pages/perfil/PerfilPage.tsx` — depende de T078, T077, T074
+- [ ] T080 [US9] Integrar listado de carpetas (hasta 100, con scroll/paginación si es necesario — FR-047) en `PerfilPage` en `frontend/src/pages/perfil/PerfilPage.tsx` — depende de T078, T074
+- [ ] T094 [US9] Integrar creación y eliminación de carpetas con advertencia de pérdida de contenido guardado (FR-043, FR-045) en `PerfilPage` en `frontend/src/pages/perfil/PerfilPage.tsx` — depende de T080, T077
 - [ ] T081 [US9] Integrar botón "Guardar en carpeta" en `PublicacionCard` en `frontend/src/components/publicacion/PublicacionCard.tsx` — depende de T079, T070
 
 **Checkpoint**: Las 9 historias de usuario funcionan de forma independiente
@@ -290,11 +298,17 @@ frontend/
 
 - [ ] T082 [P] Implementar `DesafiosPage` stub (visualización básica; detalle funcional fuera de alcance de `spec.md` según nota de `data-model.md`) en `frontend/src/pages/desafios/DesafiosPage.tsx` — depende de T016
 - [ ] T083 [P] Pase de accesibilidad: foco visible y `aria-live` en estados de carga en `frontend/src/components/comunes/Skeleton.tsx` y `frontend/src/components/comunes/Spinner.tsx` — depende de T022, T023
-- [ ] T084 Ejecutar manualmente los escenarios de validación A–G de `quickstart.md` contra todas las historias implementadas — depende de T031, T041, T048, T056, T060, T065, T070, T074, T081
+- [ ] T084 Ejecutar manualmente los escenarios de validación A–G de `quickstart.md` contra todas las historias implementadas — depende de T031, T041, T048, T056, T060, T065, T070, T074, T081, T087, T088, T089, T093, T094
 - [ ] T085 [P] Actualizar `frontend/README.md` con instrucciones de instalación y ejecución según `quickstart.md`
-- [ ] T086 Revisión de arquitectura contra el checklist de `quickstart.md` (ningún componente de presentación llama `fetch`/`axios` directamente, enums en vez de strings mágicos, toda regla de negocio testeada) — depende de T084
+- [ ] T086 Revisión de arquitectura contra el checklist de `quickstart.md` (ningún componente de presentación llama `fetch`/`axios` directamente, enums en vez de strings mágicos, toda regla de negocio testeada) — depende de T084, T012, T014, T015, T042, T075, T090
 
 ---
+
+## Alcance de MVP (definido tras `/speckit.analyze` del 2026-09-08)
+
+- **MVP mínimo demostrable**: `T001`–`T031` (Setup + Foundational + User Story 1 completa: Like). Es el corte explícito marcado con 🎯 en la Fase 3 y el único que produce una demo funcional end-to-end sin depender de ninguna ambigüedad B1–B7 pendiente con backend.
+- **Alcance completo de `spec.md`**: `T001`–`T094` (las 9 historias de usuario + Polish), incluyendo las tareas agregadas tras el análisis de consistencia (`T087`–`T094`) para cerrar FR-011, el feed real, el catálogo de filtros, el test de seguir/dejar de seguir, y la división de `T054`/`T080`.
+- Cualquier corte intermedio (por ejemplo, entregar solo las 5 historias P1) corresponde al rango `T001`–`T060`, ya que `T059`/`T060` cierran US5 y todas las tareas P1 (US1–US5) están completas en ese punto.
 
 ## Dependencies & Execution Order
 
@@ -307,15 +321,17 @@ frontend/
 
 ### User Story Dependencies
 
-- **US1 (Like, P1)**: Sin dependencias de otras historias — MVP
-- **US2 (Publicar, P1)**: Extiende `publicacionService` creado en US1 (T027); reutiliza `PublicacionCard`/`HomePage` de US1
-- **US3 (Buscar/Filtrar, P1)**: Independiente de US1/US2 en su dominio (`Filtro`), pero reutiliza `PublicacionCard` de US1 para renderizar resultados
+- **US1 (Like, P1)**: Sin dependencias de otras historias — MVP (incluye `feedService`, T088)
+- **US2 (Publicar, P1)**: Extiende `publicacionService` creado en US1 (T027); reutiliza `PublicacionCard`/`HomePage` de US1; agrega la publicación al perfil propio (T087, depende también de `PerfilPage` de US6/T065)
+- **US3 (Buscar/Filtrar, P1)**: Independiente de US1/US2 en su dominio (`Filtro`), pero reutiliza `PublicacionCard` de US1 para renderizar resultados; agrega `filtroOpcionesService` (T089) como prerequisito de `FiltroPanel` (T045)
 - **US4 (Login, P1)**: Independiente en su dominio; consumida por US2, US6, US7, US8, US9 para verificar autenticación
 - **US5 (Registro, P1)**: Extiende `authService` de US4
-- **US6 (Editar perfil, P2)**: Reutiliza `Usuario` (Foundational) y crea `PerfilPage` base, reutilizada luego por US8 y US9
+- **US6 (Editar perfil, P2)**: Reutiliza `Usuario` (Foundational) y crea `PerfilPage` base, reutilizada luego por US2 (T087), US8 y US9
 - **US7 (Reportar, P2)**: Extiende `PublicacionCard` de US1
-- **US8 (Seguir, P2)**: Extiende `perfilService`/`PerfilPage` de US6
-- **US9 (Carpetas, P3)**: Extiende `PerfilPage` de US6/US8 y `PublicacionCard` de US1/US7
+- **US8 (Seguir, P2)**: Extiende `perfilService`/`PerfilPage` de US6; su regla de negocio de dominio se testea en Foundational (T090)
+- **US9 (Carpetas, P3)**: Extiende `PerfilPage` de US6/US8 y `PublicacionCard` de US1/US7; la integración en `PerfilPage` se divide en listado (T080) y creación/eliminación (T094)
+
+> **Nota**: `T087` (mostrar publicaciones propias en `PerfilPage`) introduce una dependencia cruzada de US2 hacia US6 que no existía en la versión original de `tasks.md`. Si se prioriza estrictamente el orden P1→P2→P3, `T087` debe diferirse hasta completar `T065` (US6), aun cuando el resto de US2 (T032–T041) pueda completarse antes.
 
 ### Dentro de cada historia
 
@@ -324,13 +340,27 @@ frontend/
 - Servicios antes que componentes de presentación
 - Componentes antes que wiring en páginas
 
+### Tareas bloqueadas por ambigüedades de contrato con backend (B1–B7)
+
+Ninguna de estas tareas debe darse por completada sin antes confirmar el contrato correspondiente con el equipo de backend (ver tabla "Resumen de Ambigüedades Pendientes" en `contracts/api-contracts.md`). Cada tarea afectada lleva la marca **⚠️ Requiere confirmación de backend antes de implementar** en su descripción:
+
+| Ambigüedad | Descripción | Tareas afectadas |
+|---|---|---|
+| B1 | Criterios exactos de fortaleza de contraseña | T057, T059 |
+| B2 | Contrato exacto de URL/flujo de callback OAuth | T050, T051, T052, T055, T093 |
+| B3 | Contrato exacto de `GET /api/tags` (paginación, límite) | T036 |
+| B4 | Formatos de archivo (MIME) aceptados por tipo de contenido | T035 |
+| B5 | Mecanismo de paginación: cursor opaco vs. `page`/`size` | T044, T047 |
+| B6 | Origen del catálogo de estilos/técnicas (endpoint propio vs. embebido) | T045, T089 |
+| B7 | Lista definitiva de campos editables de perfil | T062, T064 |
+
 ### Parallel Opportunities
 
 - Todas las tareas `[P]` de Setup pueden ejecutarse en paralelo
 - Todos los enums `[P]` de Foundational (T006–T010) pueden ejecutarse en paralelo
-- Los tests de dominio `[P]` de Foundational (T012, T014, T015) pueden ejecutarse en paralelo entre sí una vez creado el modelo correspondiente
-- Los tres proveedores de autenticación de US4 (T050, T051, T052) son `[P]` entre sí
-- Distintas historias de usuario pueden trabajarse en paralelo por distintos desarrolladores una vez completada Foundational, respetando las dependencias cruzadas señaladas arriba (US2→US1, US5→US4, US8→US6, US9→US6/US1)
+- Los tests de dominio `[P]` de Foundational (T012, T014, T015, T090) pueden ejecutarse en paralelo entre sí una vez creado el modelo correspondiente
+- Los tres proveedores de autenticación de US4 (T050, T051, T052) son `[P]` entre sí (todos sujetos a B2 salvo `mailPasswordProvider`)
+- Distintas historias de usuario pueden trabajarse en paralelo por distintos desarrolladores una vez completada Foundational, respetando las dependencias cruzadas señaladas arriba (US2→US1, US2→US6 vía T087, US5→US4, US8→US6, US9→US6/US1)
 
 ---
 
@@ -348,35 +378,35 @@ Task: "Crear enum MotivoReporteCodigo e interfaz MotivoReporte en frontend/src/d
 
 ```bash
 Task: "Implementar mailPasswordProvider en frontend/src/infrastructure/authProviders/mailPasswordProvider.ts"
-Task: "Implementar googleProvider en frontend/src/infrastructure/authProviders/googleProvider.ts"
-Task: "Implementar githubProvider en frontend/src/infrastructure/authProviders/githubProvider.ts"
+Task: "Implementar googleProvider en frontend/src/infrastructure/authProviders/googleProvider.ts (⚠️ B2)"
+Task: "Implementar githubProvider en frontend/src/infrastructure/authProviders/githubProvider.ts (⚠️ B2)"
 ```
 
 ---
 
 ## Implementation Strategy
 
-### MVP First (User Story 1 solamente)
+### MVP First (User Story 1 solamente — T001–T031)
 
-1. Completar Phase 1: Setup
-2. Completar Phase 2: Foundational (crítico — bloquea todas las historias)
-3. Completar Phase 3: User Story 1 (Like)
+1. Completar Phase 1: Setup (T001–T005)
+2. Completar Phase 2: Foundational (T006–T026 — crítico, bloquea todas las historias)
+3. Completar Phase 3: User Story 1 (T027–T031, incluye `feedService` T088)
 4. **Detener y validar**: probar Like de forma independiente (Escenario A de `quickstart.md`)
-5. Demostrar/entregar si está listo
+5. Demostrar/entregar si está listo — este es el corte exacto de MVP definido arriba
 
 ### Entrega incremental
 
-1. Setup + Foundational → base lista
-2. + US1 (Like) → validar → **MVP**
-3. + US2 (Publicar) → validar
-4. + US3 (Buscar/Filtrar) → validar
-5. + US4 (Login) → validar
-6. + US5 (Registro) → validar (cierra las 5 historias P1)
-7. + US6 (Editar perfil) → validar
-8. + US7 (Reportar) → validar
-9. + US8 (Seguir) → validar
-10. + US9 (Carpetas) → validar (cierra el alcance completo de `spec.md`)
-11. Phase 12: Polish
+1. Setup + Foundational (T001–T026, incluye T090) → base lista
+2. + US1 (T027–T031, T088) → validar → **MVP**
+3. + US2 (T032–T041, T087 — requiere T065 de US6) → validar
+4. + US3 (T042–T048, T089) → validar
+5. + US4 (T049–T056, T091–T093 — parcialmente sujeta a B2) → validar
+6. + US5 (T057–T060 — parcialmente sujeta a B1) → validar (cierra las 5 historias P1, rango T001–T060)
+7. + US6 (T061–T065 — parcialmente sujeta a B7) → validar
+8. + US7 (T066–T070) → validar
+9. + US8 (T071–T074) → validar
+10. + US9 (T075–T081, T094) → validar (cierra el alcance completo de `spec.md`)
+11. Phase 12: Polish (T082–T086) → rango completo T001–T094
 
 ---
 
@@ -384,7 +414,8 @@ Task: "Implementar githubProvider en frontend/src/infrastructure/authProviders/g
 
 - `[P]` = archivos distintos, sin dependencias pendientes entre sí
 - `[Story]` mapea cada tarea a su historia de usuario para trazabilidad con `spec.md`
-- Las 6 reglas de negocio de cliente NON-NEGOTIABLE (Principio VII) están cubiertas por: T014, T015 (like/reportar/editar/eliminar), T012 (seguir), T034/T049/T057/T061 (formularios obligatorios), T042 (filtro de distancia)
+- Las 6 reglas de negocio de cliente NON-NEGOTIABLE (Principio VII) están cubiertas por: T014, T015 (like/reportar/editar/eliminar), T012/T090 (seguir + reversión optimista), T034/T049/T057/T061 (formularios obligatorios), T042 (filtro de distancia)
+- Las tareas marcadas con **⚠️ Requiere confirmación de backend antes de implementar** (ver tabla B1–B7 arriba) no deben iniciarse en la fase de implementación real sin la confirmación correspondiente del equipo de backend
 - No se implementa código en esta fase; este archivo es un artefacto de planificación
 - Verificar que cada test falle antes de implementar la funcionalidad correspondiente
 - Detenerse en cada checkpoint para validar la historia de forma independiente

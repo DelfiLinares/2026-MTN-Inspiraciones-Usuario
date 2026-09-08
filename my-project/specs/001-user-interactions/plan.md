@@ -125,30 +125,43 @@ frontend/
 │   │       ├── TipoContenido.ts
 │   │       ├── EstadoPublicacion.ts
 │   │       ├── TipoFiltro.ts
-│   │       └── RolUsuario.ts
+│   │       ├── RolUsuario.ts
+│   │       └── MotivoReporte.ts       # MotivoReporteCodigo + interfaz MotivoReporte
 │   ├── services/                  # APLICACIÓN/SERVICIOS (casos de uso de cliente)
+│   │   ├── AuthContext.tsx        #   estado de sesión, expone usuario actual (contenedor de React Context)
 │   │   ├── authService.ts         #   login, registro, logout, refresh de sesión
-│   │   ├── publicacionService.ts  #   crear publicación, dar/quitar like, reportar
+│   │   ├── publicacionService.ts  #   crear publicación, dar/quitar like
+│   │   ├── feedService.ts         #   GET /api/feed, alimenta HomePage
+│   │   ├── tagsService.ts         #   autocompletado de vocabulario controlado de tags
+│   │   ├── archivoValidacion.ts   #   validación de tipo/MIME de archivo por TipoContenido
+│   │   ├── usePublicacionForm.ts  #   estado del formulario de nueva publicación
 │   │   ├── busquedaService.ts     #   buscar con filtros, paginación/scroll infinito
+│   │   ├── filtroOpcionesService.ts # GET /api/filtros/opciones, catálogo de estilos/técnicas
+│   │   ├── useDescubrirFiltros.ts #   orquesta Filtro + busquedaService + useInfiniteList
+│   │   ├── useInfiniteList.ts     #   hook de scroll infinito (IntersectionObserver)
 │   │   ├── perfilService.ts       #   editar perfil, seguir/dejar de seguir
-│   │   ├── carpetaService.ts      #   crear/renombrar/eliminar carpeta, guardar/quitar post
-│   │   └── geolocalizacionService.ts # activar/desactivar geolocalización del navegador
+│   │   ├── usePerfilEdicion.ts    #   estado del formulario de edición de perfil
+│   │   ├── reporteService.ts      #   motivos de reporte, estado propio, envío de reporte
+│   │   └── carpetaService.ts      #   crear/renombrar/eliminar carpeta, guardar/quitar post
 │   ├── infrastructure/            # INFRAESTRUCTURA (Principio III)
 │   │   ├── httpClient.ts          #   cliente HTTP único, adjunta token automáticamente
 │   │   ├── authProviders/         #   estrategias mail/contraseña, Google, GitHub
 │   │   │   ├── mailPasswordProvider.ts
 │   │   │   ├── googleProvider.ts
 │   │   │   └── githubProvider.ts
-│   │   ├── tokenStorage.ts        #   almacenamiento seguro del token de sesión
-│   │   └── geolocationClient.ts   #   acceso a navigator.geolocation
+│   │   ├── tokenStorage.ts        #   verificación de sesión activa (GET /api/auth/me)
+│   │   └── geolocationClient.ts   #   acceso a navigator.geolocation, usado por Filtro/services de búsqueda
 │   ├── routes/                    # Definición de rutas + guard de rutas protegidas
 │   ├── App.tsx
 │   └── main.tsx
 ├── tests/
 │   ├── domain/                    # Tests de reglas de negocio de cliente (Principio VII)
-│   │   ├── Publicacion.test.ts
+│   │   ├── Publicacion.likes.test.ts
+│   │   ├── Publicacion.permissions.test.ts
 │   │   ├── Usuario.test.ts
-│   │   └── Filtro.test.ts
+│   │   ├── Usuario.seguir.test.ts
+│   │   ├── Filtro.test.ts
+│   │   └── Carpeta.test.ts
 │   ├── services/                  # Tests de casos de uso con HTTP mockeado
 │   └── components/                # Tests de componentes de presentación
 ├── index.html
@@ -164,6 +177,16 @@ Boot vive en otro repositorio fuera de alcance). Dentro de `frontend/src/`, la s
 `infrastructure/` (infraestructura) materializa directamente las cuatro capas exigidas por el
 Principio III de la constitución, y cada pantalla del alcance funcional tiene su propia carpeta en
 `pages/` para mantener trazabilidad 1:1 con `spec.md`.
+
+**Nota de reconciliación (post `/speckit.analyze` del 2026-09-08)**: la lista de `services/` fue
+actualizada para reflejar exactamente los servicios y hooks definidos en `tasks.md` (T017–T094),
+incluyendo `feedService.ts` y `filtroOpcionesService.ts` (agregados para cerrar huecos de contrato
+detectados en el análisis de consistencia) y `AuthContext.tsx` (que ya se creaba en `tasks.md` pero
+no figuraba en este árbol). Se eliminó `geolocalizacionService.ts`: ninguna tarea de `tasks.md` lo
+implementa como servicio propio; la lógica de geolocalización queda cubierta por
+`infrastructure/geolocationClient.ts` (acceso al navegador) y los métodos de `domain/Filtro.ts`
+(`distanciaHabilitada()`, `aQueryParams()`), evitando una capa intermedia sin responsabilidad
+propia.
 
 ## Complexity Tracking
 
