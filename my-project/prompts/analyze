@@ -28,6 +28,7 @@ Prestar especial atención a:
 3. Que V6__create_indexes.sql esté presente en plan, data-model y tasks.
 4. Que las tareas T001–T075 cubran todo el MVP.
 5. Que no haya implementación antes de completar análisis.
-Devolver un reporte con:
+Devolver un reporte con: 
 - OK para pasar a taskstoissues, o
 - lista de correcciones necesarias antes de seguir.
+#para volver a hacer git push
