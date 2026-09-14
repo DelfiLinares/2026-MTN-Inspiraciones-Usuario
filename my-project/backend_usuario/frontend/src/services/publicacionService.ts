@@ -4,13 +4,13 @@ import { Publicacion } from '../domain/Publicacion'
 import type { TipoContenido } from '../domain/enums/TipoContenido'
 import type { EstadoPublicacion } from '../domain/enums/EstadoPublicacion'
 
-/**
+/** 
  * Servicio de aplicación para publicaciones.
  *
  * Fuente de verdad: specs/001-user-interactions/contracts/api-contracts.md
  * (sección "2. Publicaciones — Like y Reporte") y
  * specs/001-user-interactions/spec.md (FR-001, FR-002, CB-02).
- *
+ * 
  * `useLikePublicacion` aplica la actualización optimista de
  * `Publicacion.aplicarLikeOptimista()`/`revertirLikeOptimista()` (T013) y
  * llama a `POST`/`DELETE /api/publicaciones/{id}/like`. Serializa clics
