@@ -124,8 +124,8 @@ frontend/
 
 ### Implementation for User Story 2
 
-- [ ] T035 [P] [US2] ⚠️ Requiere confirmación de backend antes de implementar (B4 — MIME types permitidos por tipo de contenido, ver `contracts/api-contracts.md`). Implementar `archivoValidacion` (valida tipo/MIME por `TipoContenido`) en `frontend/src/services/archivoValidacion.ts` — depende de T006, T033
-- [ ] T036 [P] [US2] ⚠️ Requiere confirmación de backend antes de implementar (B3 — contrato exacto de `GET /api/tags`, paginación/límite). Implementar `tagsService` (autocompletado vía `GET /api/tags`, límite de 10 — FR-006) en `frontend/src/services/tagsService.ts` — depende de T017, T032
+- [ ] T035 [P] [US2] Implementar `archivoValidacion` (valida tipo/MIME por `TipoContenido` — B4 confirmado: `.jpg`, `.jpeg`, `.png`, `.gif`, `.mp3`, `.mp4`) en `frontend/src/services/archivoValidacion.ts` — depende de T006, T033
+- [ ] T036 [P] [US2] Implementar `tagsService` (obtiene el catálogo completo de tags organizado en secciones vía `GET /api/tags` — B3 confirmado: sin paginación incremental, filtrado en cliente —, límite de 10 seleccionables — FR-006) en `frontend/src/services/tagsService.ts` — depende de T017, T032
 - [ ] T037 [US2] Extender `publicacionService` con `crearPublicacion()` (subida multipart, expone estado/porcentaje de progreso como valor de retorno — FR-009; la barra de progreso visual se implementa en T040) en `frontend/src/services/publicacionService.ts` — depende de T027, T035
 - [ ] T038 [US2] Implementar `usePublicacionForm` (estado del formulario, conserva datos ante error — FR-012) en `frontend/src/services/usePublicacionForm.ts` — depende de T036, T037, T034
 - [ ] T039 [US2] Implementar `TagChip` y `TagAutocomplete` en `frontend/src/components/publicacion/TagChip.tsx` y `frontend/src/components/publicacion/TagAutocomplete.tsx` — depende de T036
@@ -150,12 +150,12 @@ frontend/
 ### Implementation for User Story 3
 
 - [ ] T043 [US3] Crear modelo de dominio `Filtro` en `frontend/src/domain/Filtro.ts` — depende de T008, T042
-- [ ] T044 [US3] ⚠️ Requiere confirmación de backend antes de implementar (B5 — mecanismo de paginación: cursor opaco vs. `page`/`size`). Implementar `busquedaService` (búsqueda con filtros vía `GET /api/publicaciones/buscar`, paginación por cursor) en `frontend/src/services/busquedaService.ts` — depende de T017, T043
-- [ ] T045 [P] [US3] ⚠️ Requiere confirmación de backend antes de implementar (B6 — origen del catálogo de estilos/técnicas, endpoint propio vs. embebido). Implementar `FiltroPanel` (drawer lateral de filtros) en `frontend/src/components/filtros/FiltroPanel.tsx` — depende de T043, T089
+- [ ] T044 [US3] Implementar `busquedaService` (búsqueda con filtros vía `GET /api/publicaciones/buscar`, paginación por cursor opaco — B5 confirmado) en `frontend/src/services/busquedaService.ts` — depende de T017, T043
+- [ ] T045 [P] [US3] Implementar `FiltroPanel` (drawer lateral de filtros; el catálogo de estilos/técnicas llega embebido en la respuesta de búsqueda vía `opcionesFiltro` — B6 confirmado, sin endpoint separado) en `frontend/src/components/filtros/FiltroPanel.tsx` — depende de T043, T089
 - [ ] T046 [P] [US3] Implementar `FiltroChip` (chip removible individualmente) en `frontend/src/components/filtros/FiltroChip.tsx` — depende de T043
-- [ ] T047 [US3] ⚠️ Requiere confirmación de backend antes de implementar (B5 — mecanismo de paginación, mismo alcance que T044). Implementar `useDescubrirFiltros` (orquesta `Filtro` + `busquedaService` + `useInfiniteList`) en `frontend/src/services/useDescubrirFiltros.ts` — depende de T044, T026, T043
+- [ ] T047 [US3] Implementar `useDescubrirFiltros` (orquesta `Filtro` + `busquedaService` + `useInfiniteList`, paginación por cursor opaco — B5 confirmado) en `frontend/src/services/useDescubrirFiltros.ts` — depende de T044, T026, T043
 - [ ] T048 [US3] Implementar `DescubrirPage` (búsqueda de texto libre, `FiltroPanel`, skeletons, `EmptyState`, indicador de fin de resultados — CB-04, CB-05) en `frontend/src/pages/descubrir/DescubrirPage.tsx` — depende de T047, T045, T046, T022, T024
-- [ ] T089 [P] [US3] ⚠️ Requiere confirmación de backend antes de implementar (B6 — si el catálogo de estilos/técnicas es un endpoint propio o viene embebido en otra respuesta). Implementar `filtroOpcionesService` (`GET /api/filtros/opciones`, provee estilos/técnicas para poblar `FiltroPanel`) en `frontend/src/services/filtroOpcionesService.ts` — depende de T017
+- [ ] T089 [P] [US3] Implementar `filtroOpcionesService` (extrae estilos/técnicas del campo `opcionesFiltro` embebido en la respuesta de `GET /api/publicaciones/buscar` — B6 confirmado, sin endpoint `GET /api/filtros/opciones` separado — para poblar `FiltroPanel`) en `frontend/src/services/filtroOpcionesService.ts` — depende de T017
 
 **Checkpoint**: User Stories 1, 2 y 3 funcionales de forma independiente
 
@@ -173,15 +173,15 @@ frontend/
 
 ### Implementation for User Story 4
 
-- [ ] T050 [P] [US4] ⚠️ Requiere confirmación de backend antes de implementar (B2 — contrato exacto de URL/flujo de callback OAuth, aplica indirectamente a la orquestación de proveedores). Implementar `mailPasswordProvider` (estrategia mail/contraseña, no afectado por B2) en `frontend/src/infrastructure/authProviders/mailPasswordProvider.ts` — depende de T017
-- [ ] T051 [P] [US4] ⚠️ Requiere confirmación de backend antes de implementar (B2 — contrato exacto de URL/flujo de callback OAuth). Implementar `googleProvider` (estrategia OAuth con redirección) en `frontend/src/infrastructure/authProviders/googleProvider.ts` — depende de T017
-- [ ] T052 [P] [US4] ⚠️ Requiere confirmación de backend antes de implementar (B2 — contrato exacto de URL/flujo de callback OAuth). Implementar `githubProvider` (estrategia OAuth con redirección) en `frontend/src/infrastructure/authProviders/githubProvider.ts` — depende de T017
+- [ ] T050 [P] [US4] Implementar `mailPasswordProvider` (estrategia mail/contraseña, no afectado por B2) en `frontend/src/infrastructure/authProviders/mailPasswordProvider.ts` — depende de T017
+- [ ] T051 [P] [US4] Implementar `googleProvider` (estrategia OAuth con redirección; B2 confirmado — el frontend implementa su propia ruta de callback `/auth/callback/google`) en `frontend/src/infrastructure/authProviders/googleProvider.ts` — depende de T017
+- [ ] T052 [P] [US4] Implementar `githubProvider` (estrategia OAuth con redirección; B2 confirmado — el frontend implementa su propia ruta de callback `/auth/callback/github`) en `frontend/src/infrastructure/authProviders/githubProvider.ts` — depende de T017
 - [ ] T053 [US4] Implementar `authService` (orquesta los tres proveedores, login/logout, alimenta `AuthContext`) en `frontend/src/services/authService.ts` — depende de T050, T051, T052, T020
 - [ ] T054 [US4] Implementar `LoginPage` — formulario base con las tres opciones (mail/contraseña, Google, GitHub) y validación en cliente de campos vacíos/mail inválido (FR-026) en `frontend/src/pages/login/LoginPage.tsx` — depende de T053, T049
 - [ ] T091 [P] [US4] Test unitario/componente: mensaje de error genérico ante credenciales incorrectas, sin revelar el campo específico (FR-027) en `frontend/tests/components/LoginPage.errorGenerico.test.tsx` — depende de T054
 - [ ] T092 [US4] Implementar deshabilitación del botón de submit mientras el login está en progreso, para evitar envíos duplicados (FR-028) en `frontend/src/pages/login/LoginPage.tsx` — depende de T054, T091
-- [ ] T093 [US4] ⚠️ Requiere confirmación de backend antes de implementar (B2, indirectamente, ya que la redirección aplica también al retorno de OAuth). Implementar redirección de un usuario ya autenticado que accede a `/login` hacia el home (FR-029) en `frontend/src/pages/login/LoginPage.tsx` — depende de T054, T020
-- [ ] T055 [US4] ⚠️ Requiere confirmación de backend antes de implementar (B2 — contrato exacto de URL/flujo de callback OAuth). Implementar `AuthCallbackPage` (maneja retorno de OAuth Google/GitHub) en `frontend/src/pages/login/AuthCallbackPage.tsx` — depende de T053
+- [ ] T093 [US4] Implementar redirección de un usuario ya autenticado que accede a `/login` hacia el home (FR-029) en `frontend/src/pages/login/LoginPage.tsx` — depende de T054, T020
+- [ ] T055 [US4] Implementar `AuthCallbackPage` (maneja el retorno de OAuth Google/GitHub en la ruta propia del frontend `/auth/callback/:provider` — B2 confirmado) en `frontend/src/pages/login/AuthCallbackPage.tsx` — depende de T053
 - [ ] T056 [US4] Integrar redirección a login con conservación de destino original en el guard de rutas (CB-06) en `frontend/src/routes/index.tsx` — depende de T021, T053
 
 **Checkpoint**: User Stories 1–4 funcionales de forma independiente
@@ -196,12 +196,12 @@ frontend/
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T057 [P] [US5] ⚠️ Requiere confirmación de backend antes de implementar (B1 — criterios exactos de fortaleza de contraseña). Test unitario: formulario de registro bloquea envío con campos incompletos o contraseñas que no coinciden (FR-031) en `frontend/tests/services/registroForm.test.ts`
+- [ ] T057 [P] [US5] Test unitario: formulario de registro bloquea envío con campos incompletos o contraseñas que no coinciden (FR-031; B1 confirmado — mínimo 8 caracteres, una mayúscula y un símbolo) en `frontend/tests/services/registroForm.test.ts`
 
 ### Implementation for User Story 5
 
 - [ ] T058 [US5] Extender `authService` con `registrar()` (`POST /api/auth/register`, manejo de error `EMAIL_YA_REGISTRADO` — FR-032) en `frontend/src/services/authService.ts` — depende de T053
-- [ ] T059 [US5] ⚠️ Requiere confirmación de backend antes de implementar (B1 — criterios exactos de fortaleza de contraseña, necesarios para el indicador en tiempo real). Implementar `RegistroPage` (formulario completo, indicador de fortaleza de contraseña en tiempo real, registro social) en `frontend/src/pages/registro/RegistroPage.tsx` — depende de T058, T057
+- [ ] T059 [US5] Implementar `RegistroPage` (formulario completo, indicador de fortaleza de contraseña en tiempo real — B1 confirmado: mínimo 8 caracteres, una mayúscula y un símbolo —, registro social) en `frontend/src/pages/registro/RegistroPage.tsx` — depende de T058, T057
 - [ ] T060 [US5] Implementar `CuestionarioPage` (onboarding post-registro — FR-033) en `frontend/src/pages/cuestionario/CuestionarioPage.tsx` — depende de T059
 
 **Checkpoint**: User Stories 1–5 (todas las P1) funcionales de forma independiente
@@ -220,9 +220,9 @@ frontend/
 
 ### Implementation for User Story 6
 
-- [ ] T062 [US6] ⚠️ Requiere confirmación de backend antes de implementar (B7 — lista definitiva de campos editables de perfil más allá de nombre/apellido/bio/foto). Implementar `perfilService` (`GET /api/usuarios/{id}`, `PATCH /api/usuarios/me`) en `frontend/src/services/perfilService.ts` — depende de T017, T011
+- [ ] T062 [US6] Implementar `perfilService` (`GET /api/usuarios/{id}`, `PATCH /api/usuarios/me` — B7 confirmado: campos editables `usuario`, `fotoUrl`, `bannerUrl`, `mail`, fecha de nacimiento día/mes/año, redes sociales dinámicas; contraseña vía flujo separado `POST /api/auth/cambiar-password`/`POST /api/auth/recuperar-password`) en `frontend/src/services/perfilService.ts` — depende de T017, T011
 - [ ] T063 [US6] Implementar `usePerfilEdicion` (estado del formulario, previsualización de foto, advertencia de cambios no guardados — FR-038, FR-039) en `frontend/src/services/usePerfilEdicion.ts` — depende de T062, T061
-- [ ] T064 [US6] ⚠️ Requiere confirmación de backend antes de implementar (B7 — lista definitiva de campos editables de perfil). Implementar `EditarPerfilPage` (sin campo de contraseña, enlace "Cambiar contraseña" — FR-035) en `frontend/src/pages/editar-perfil/EditarPerfilPage.tsx` — depende de T063
+- [ ] T064 [US6] Implementar `EditarPerfilPage` (usuario, foto de perfil, banner, mail, fecha de nacimiento día/mes/año, hasta 3+ redes sociales dinámicas — B7 confirmado; sin campo de contraseña, enlace "Cambiar contraseña" que lleva a un flujo separado con contraseña anterior/nueva y opción "No recuerdo mi contraseña" — FR-035) en `frontend/src/pages/editar-perfil/EditarPerfilPage.tsx` — depende de T063
 - [ ] T065 [US6] Implementar `PerfilPage` (visualización de datos propios/ajenos usando `Usuario.esPropio()`) en `frontend/src/pages/perfil/PerfilPage.tsx` — depende de T062, T011
 
 **Checkpoint**: User Stories 1–6 funcionales de forma independiente
@@ -340,19 +340,22 @@ frontend/
 - Servicios antes que componentes de presentación
 - Componentes antes que wiring en páginas
 
-### Tareas bloqueadas por ambigüedades de contrato con backend (B1–B7)
+### Ambigüedades de contrato con backend (B1–B7) — RESUELTAS vía /speckit.clarify
 
-Ninguna de estas tareas debe darse por completada sin antes confirmar el contrato correspondiente con el equipo de backend (ver tabla "Resumen de Ambigüedades Pendientes" en `contracts/api-contracts.md`). Cada tarea afectada lleva la marca **⚠️ Requiere confirmación de backend antes de implementar** en su descripción:
+Todas las ambigüedades B1–B7 fueron resueltas (ver tabla "Resumen de Ambigüedades (RESUELTAS vía
+/speckit.clarify)" en `contracts/api-contracts.md`). Ninguna tarea queda ya bloqueada por falta de
+confirmación de backend; las marcas **⚠️ Requiere confirmación de backend antes de implementar**
+fueron removidas de las tareas afectadas.
 
-| Ambigüedad | Descripción | Tareas afectadas |
-|---|---|---|
-| B1 | Criterios exactos de fortaleza de contraseña | T057, T059 |
-| B2 | Contrato exacto de URL/flujo de callback OAuth | T050, T051, T052, T055, T093 |
-| B3 | Contrato exacto de `GET /api/tags` (paginación, límite) | T036 |
-| B4 | Formatos de archivo (MIME) aceptados por tipo de contenido | T035 |
-| B5 | Mecanismo de paginación: cursor opaco vs. `page`/`size` | T044, T047 |
-| B6 | Origen del catálogo de estilos/técnicas (endpoint propio vs. embebido) | T045, T089 |
-| B7 | Lista definitiva de campos editables de perfil | T062, T064 |
+| Ambigüedad | Descripción | Resolución | Tareas afectadas |
+|---|---|---|---|
+| B1 | Criterios exactos de fortaleza de contraseña | Mínimo 8 caracteres, una mayúscula y un símbolo | T057, T059 |
+| B2 | Contrato exacto de URL/flujo de callback OAuth | El frontend implementa su propia ruta de callback (`/auth/callback/:provider`) | T050, T051, T052, T055, T093 |
+| B3 | Contrato exacto de `GET /api/tags` (paginación, límite) | Catálogo completo en página propia, organizado en secciones; sin paginación incremental | T036 |
+| B4 | Formatos de archivo (MIME) aceptados por tipo de contenido | `.jpg`, `.jpeg`, `.png`, `.gif`, `.mp3`, `.mp4` | T035 |
+| B5 | Mecanismo de paginación: cursor opaco vs. `page`/`size` | Cursor opaco | T044, T047 |
+| B6 | Origen del catálogo de estilos/técnicas (endpoint propio vs. embebido) | Embebido en `GET /api/publicaciones/buscar` (campo `opcionesFiltro`), sin endpoint separado | T045, T089 |
+| B7 | Lista definitiva de campos editables de perfil | `usuario`, `fotoUrl`, `bannerUrl`, `mail`, fecha de nacimiento (día/mes/año), redes sociales dinámicas; contraseña vía flujo separado | T062, T064 |
 
 ### Parallel Opportunities
 
@@ -400,9 +403,9 @@ Task: "Implementar githubProvider en frontend/src/infrastructure/authProviders/g
 2. + US1 (T027–T031, T088) → validar → **MVP**
 3. + US2 (T032–T041, T087 — requiere T065 de US6) → validar
 4. + US3 (T042–T048, T089) → validar
-5. + US4 (T049–T056, T091–T093 — parcialmente sujeta a B2) → validar
-6. + US5 (T057–T060 — parcialmente sujeta a B1) → validar (cierra las 5 historias P1, rango T001–T060)
-7. + US6 (T061–T065 — parcialmente sujeta a B7) → validar
+5. + US4 (T049–T056, T091–T093 — B2 resuelta vía /speckit.clarify) → validar
+6. + US5 (T057–T060 — B1 resuelta vía /speckit.clarify) → validar (cierra las 5 historias P1, rango T001–T060)
+7. + US6 (T061–T065 — B7 resuelta vía /speckit.clarify) → validar
 8. + US7 (T066–T070) → validar
 9. + US8 (T071–T074) → validar
 10. + US9 (T075–T081, T094) → validar (cierra el alcance completo de `spec.md`)

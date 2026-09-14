@@ -11,10 +11,9 @@ import type { PaginaResultado } from './useInfiniteList'
  * (sección "5. Home (feed)": `GET /api/feed`, paginación por cursor, mismo
  * shape que `GET /api/publicaciones/buscar`).
  *
- * Nota: el mecanismo exacto de paginación (cursor opaco vs. `page`/`size`)
- * está marcado como `[NEEDS CONFIRMATION]` (B5) en `api-contracts.md`; este
- * servicio asume cursor opaco, consistente con el resto de servicios
- * paginados (`busquedaService`).
+ * Nota: el mecanismo de paginación fue confirmado vía `/speckit.clarify`
+ * (B5): cursor opaco (no `page`/`size`). Este servicio usa cursor opaco,
+ * consistente con el resto de servicios paginados (`busquedaService`).
  */
 
 interface PublicacionDto {

@@ -50,21 +50,20 @@ Usado al montar la app para determinar si hay sesión activa (vía cookie).
 **Response 201**: mismo shape que login.
 **Errores relevantes**:
 - `409 { "codigo": "EMAIL_YA_REGISTRADO" }` → FR-032.
-- `422 { "codigo": "PASSWORD_DEBIL", "detalles": { "criterios": string[] } }` → usado para feedback en tiempo real (FR-031). **[NEEDS CONFIRMATION: criterios exactos de fortaleza de contraseña]**.
+- `422 { "codigo": "PASSWORD_DEBIL", "detalles": { "criterios": string[] } }` → usado para feedback en tiempo real (FR-031). **Criterios confirmados (B1)**: mínimo 8 caracteres, al menos una letra mayúscula y al menos un símbolo.
 
 ### `GET /api/auth/oauth/{provider}/redirect` (provider = `google` | `github`)
 Redirige al usuario al proveedor externo. El frontend simplemente navega el navegador a esta URL
 (no es una llamada `fetch`).
 
 ### `GET /api/auth/oauth/{provider}/callback?code=...`
-Endpoint que el backend expone para procesar el código de autorización devuelto por el proveedor;
-el frontend solo necesita renderizar una pantalla de "procesando login" mientras el backend
-redirige de vuelta a la app con la cookie de sesión ya seteada (FR-025, FR-034).
-
-**Ambigüedad**: **[NEEDS CONFIRMATION]** el contrato exacto de la URL de callback y si el frontend
-necesita una ruta propia (`/auth/callback/:provider`) que el backend redirige, o si el backend
-redirige directamente al home. Debe confirmarse con backend antes de implementar `googleProvider.ts`
-/ `githubProvider.ts`.
+**Confirmado (B2)**: el frontend implementa su **propia ruta de callback**
+(`/auth/callback/:provider`), a la que el proveedor OAuth (o el backend, según corresponda)
+redirige tras la autorización. Esta ruta propia es la responsable de completar el flujo (por
+ejemplo, invocando al backend para intercambiar el código/confirmar la sesión) antes de redirigir
+al usuario al home, en vez de que el backend redirija directamente sin pasar por una pantalla del
+frontend. `AuthCallbackPage` (T055) renderiza esta pantalla de "procesando login" mientras se
+completa el flujo (FR-025, FR-034).
 
 ---
 
@@ -102,8 +101,10 @@ propia.
 ### `GET /api/tags?query={texto}`
 Autocompletado del vocabulario controlado de tags (clarificación de spec).
 **Response 200**: `[ { "id": "string", "nombre": "string" }, ... ]`
-**[NEEDS CONFIRMATION]**: contrato exacto de este endpoint (paginación, límite de resultados por
-búsqueda) — ver `research.md` §1 nota de contrato pendiente.
+**Confirmado (B3)**: el catálogo de tags se presenta como una página propia con **todos los tags
+posibles organizados en secciones** (por categoría), no como un autocompletado incremental
+paginado; el frontend solicita el vocabulario completo (agrupado por sección) y filtra/busca en
+cliente sobre ese conjunto ya cargado, en vez de paginar resultados parciales por cada tecleo.
 
 ### `POST /api/publicaciones` (multipart/form-data)
 **Request (multipart fields)**:
@@ -136,10 +137,10 @@ búsqueda) — ver `research.md` §1 nota de contrato pendiente.
 - `422 { "codigo": "LIMITE_DE_TAGS_EXCEDIDO" }` → defensivo; el frontend ya bloquea en 10 tags
   (FR-006).
 
-**[NEEDS CONFIRMATION]**: formatos de archivo exactos aceptados por tipo de contenido (extensiones
-MIME permitidas para IMAGEN/VIDEO/MUSICA/TUTORIAL), necesarios para implementar la validación de
-tipo en cliente (FR-008). El frontend actualmente asume una lista razonable
-(`image/*`, `video/*`, `audio/*`, y adjuntos de texto para TUTORIAL) pendiente de confirmación.
+**Confirmado (B4)**: el backend acepta los siguientes formatos: `.jpg`, `.jpeg`, `.png`, `.gif`
+(imagen), `.mp3` (música/audio) y `.mp4` (video). Esta es la lista exacta de extensiones/MIME
+permitidas para la validación de tipo en cliente (FR-008); ya no aplica la suposición previa de
+`image/*`, `video/*`, `audio/*` genéricos.
 
 ---
 
@@ -151,30 +152,38 @@ tipo en cliente (FR-008). El frontend actualmente asume una lista razonable
 - `estilo`, `tecnica`: strings
 - `tipoContenido`: `TipoContenido`
 - `distanciaKm`, `lat`, `lng`: números (solo si `geolocalizacionActiva`)
-- `cursor`: string opaco para scroll infinito (o `page`/`size` si el backend prefiere paginación
-  clásica — **[NEEDS CONFIRMATION]** cuál de los dos mecanismos expone el backend)
+- `cursor`: string opaco para scroll infinito. **Confirmado (B5)**: el backend pagina con
+  **cursor opaco** (no con `page`/`size`).
 
 **Response 200**:
 ```json
 {
   "items": [ /* Publicacion[] */ ],
-  "nextCursor": "string|null"
+  "nextCursor": "string|null",
+  "opcionesFiltro": { "estilos": ["string"], "tecnicas": ["string"] }
 }
 ```
 Un `items: []` con `nextCursor: null` representa el estado vacío (US-3 AC-03.6, FR-017). La
-ausencia de `nextCursor` indica fin de resultados (CB-05).
+ausencia de `nextCursor` indica fin de resultados (CB-05). El campo `opcionesFiltro` (B6,
+confirmado) trae embebido el catálogo de estilos/técnicas disponible para poblar `FiltroPanel`
+(T045)/`filtroOpcionesService` (T089), sin necesidad de un endpoint separado.
 
 ### `GET /api/filtros/opciones`
-**Response 200**:
+**Confirmado (B6)**: el catálogo de estilos/técnicas **no es un endpoint propio**; viene
+**embebido en las respuestas de búsqueda** (`GET /api/publicaciones/buscar`), ya que los
+estilos/técnicas disponibles son uno de los posibles resultados/facetas que devuelve la búsqueda
+en la página de búsqueda. En consecuencia, este endpoint queda descartado: `FiltroPanel` (T045) y
+`filtroOpcionesService` (T089) deben obtener las opciones de estilo/técnica a partir del campo de
+facetas embebido en la respuesta de `GET /api/publicaciones/buscar` (ver sección 4, campo
+`opcionesFiltro` agregado a la respuesta), no de una llamada separada.
+
+**Response 200** (ejemplo, ahora embebido en `GET /api/publicaciones/buscar`):
 ```json
 {
   "estilos": ["string"],
   "tecnicas": ["string"]
 }
 ```
-Usado para poblar las opciones del panel de filtros (US-3 AC-03.2). **[NEEDS CONFIRMATION]**: si
-este catálogo existe como endpoint separado o viene embebido en otra respuesta de configuración
-inicial.
 
 ---
 
@@ -193,15 +202,52 @@ inicial.
 aplica.
 
 ### `PATCH /api/usuarios/me`
-**Request** (multipart si incluye foto, JSON si no):
+**Confirmado (B7)**: la lista definitiva de campos editables del perfil es:
+- `usuario` (nombre de usuario)
+- `fotoUrl` (foto de perfil)
+- `bannerUrl` (banner)
+- `mail`
+- `fechaNacimiento`, separada en `diaNacimiento`, `mesNacimiento`, `anioNacimiento`
+- `redesSociales`: array de hasta 3 entradas por defecto (cada una con un link a una red social),
+  con la posibilidad de agregar más entradas dinámicamente (botón "+" para crear barras
+  adicionales)
+
+La contraseña **no se edita en este endpoint**: se edita en un flujo separado de "Cambiar
+contraseña" (ver `POST /api/auth/cambiar-password` más abajo), donde el usuario ingresa su
+contraseña anterior y la nueva; si no la recuerda, dispone de la opción "No recuerdo mi
+contraseña", que envía una verificación a su mail (ver `POST /api/auth/recuperar-password`).
+
+**Request** (multipart si incluye foto/banner, JSON si no):
 ```json
-{ "nombre": "string", "apellido": "string", "bio": "string", "foto": "binario opcional" }
+{
+  "usuario": "string",
+  "bio": "string",
+  "mail": "string",
+  "diaNacimiento": "number",
+  "mesNacimiento": "number",
+  "anioNacimiento": "number",
+  "redesSociales": ["string"],
+  "foto": "binario opcional",
+  "banner": "binario opcional"
+}
 ```
 **Response 200**: shape de `Usuario` actualizado.
 **Errores**: `422` con detalles de campo si falla validación de servidor.
 
-**[NEEDS CONFIRMATION]**: lista definitiva de campos editables más allá de
-nombre/apellido/bio/foto (referenciado como supuesto en `spec.md`).
+### `POST /api/auth/cambiar-password`
+**Confirmado (B7)**: flujo separado de edición de perfil, para cambiar la contraseña con la
+contraseña anterior.
+**Request**: `{ "passwordActual": "string", "passwordNueva": "string" }`
+**Response 200**: sin contenido relevante para el cliente (confirmación no bloqueante).
+**Errores**: `401 { "codigo": "PASSWORD_ACTUAL_INCORRECTA" }`; `422 { "codigo": "PASSWORD_DEBIL" }`
+(mismos criterios que B1: mínimo 8 caracteres, una mayúscula y un símbolo).
+
+### `POST /api/auth/recuperar-password`
+**Confirmado (B7)**: usado desde el enlace "No recuerdo mi contraseña" del flujo de cambio de
+contraseña.
+**Request**: `{ "email": "string" }`
+**Response 200**: sin contenido relevante para el cliente (confirmación no bloqueante, no revela
+si el mail existe o no, por seguridad).
 
 ---
 
@@ -253,18 +299,19 @@ ubicación en el backend desde este módulo (Out of Scope de `spec.md`).
 
 ---
 
-## Resumen de Ambigüedades Pendientes (requieren confirmación con backend)
+## Resumen de Ambigüedades (RESUELTAS vía /speckit.clarify)
 
-| ID | Descripción | Endpoint afectado |
-|---|---|---|
-| B1 | Criterios exactos de fortaleza de contraseña | `POST /api/auth/register` |
-| B2 | Contrato exacto de URL/flujo de callback OAuth (ruta propia vs. redirección directa) | `GET /api/auth/oauth/{provider}/callback` |
-| B3 | Contrato exacto del endpoint de autocompletado de tags (paginación, límite) | `GET /api/tags` |
-| B4 | Formatos de archivo (MIME) aceptados por tipo de contenido | `POST /api/publicaciones` |
-| B5 | Mecanismo de paginación: cursor opaco vs. `page`/`size` | `GET /api/publicaciones/buscar`, `GET /api/feed` |
-| B6 | Origen del catálogo de estilos/técnicas (endpoint propio vs. embebido) | `GET /api/filtros/opciones` |
-| B7 | Lista definitiva de campos editables de perfil | `PATCH /api/usuarios/me` |
+| ID | Descripción | Endpoint afectado | Resolución |
+|---|---|---|---|
+| B1 | Criterios exactos de fortaleza de contraseña | `POST /api/auth/register`, `POST /api/auth/cambiar-password` | Mínimo 8 caracteres, al menos una mayúscula y al menos un símbolo. |
+| B2 | Contrato exacto de URL/flujo de callback OAuth (ruta propia vs. redirección directa) | `GET /api/auth/oauth/{provider}/callback` | El frontend implementa su propia ruta de callback (`/auth/callback/:provider`). |
+| B3 | Contrato exacto del endpoint de autocompletado de tags (paginación, límite) | `GET /api/tags` | El catálogo completo de tags se presenta en una página propia organizada en secciones; no requiere paginación incremental. |
+| B4 | Formatos de archivo (MIME) aceptados por tipo de contenido | `POST /api/publicaciones` | `.jpg`, `.jpeg`, `.png`, `.gif`, `.mp3`, `.mp4`. |
+| B5 | Mecanismo de paginación: cursor opaco vs. `page`/`size` | `GET /api/publicaciones/buscar`, `GET /api/feed` | Cursor opaco. |
+| B6 | Origen del catálogo de estilos/técnicas (endpoint propio vs. embebido) | `GET /api/publicaciones/buscar` (campo `opcionesFiltro`) | Embebido en las respuestas de búsqueda; no existe endpoint `GET /api/filtros/opciones` separado. |
+| B7 | Lista definitiva de campos editables de perfil | `PATCH /api/usuarios/me` | `usuario`, `fotoUrl`, `bannerUrl`, `mail`, fecha de nacimiento (día/mes/año), hasta 3+ redes sociales dinámicas. Contraseña editable en flujo separado (`POST /api/auth/cambiar-password` / `POST /api/auth/recuperar-password`). |
 
-Estas ambigüedades no bloquean el diseño de capas ni los modelos de dominio (que ya están
-completos), pero **deben resolverse antes de implementar la capa de infraestructura** (los clientes
-HTTP concretos) en la fase de tareas/implementación.
+Estas ambigüedades fueron resueltas mediante `/speckit.clarify`; las tareas de `tasks.md` que
+dependían de ellas ya no requieren confirmación adicional de backend antes de implementarse.
+
+
