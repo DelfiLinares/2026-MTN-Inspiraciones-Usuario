@@ -16,7 +16,7 @@
  * directamente; toda comunicación con el backend pasa por este módulo.
  */
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 
 /**
  * Error uniforme lanzado por `httpClient` ante respuestas HTTP no exitosas

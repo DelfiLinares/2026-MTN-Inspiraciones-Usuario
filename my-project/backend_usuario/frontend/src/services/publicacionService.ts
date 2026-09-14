@@ -1,6 +1,8 @@
 import { useCallback, useRef, useState } from 'react'
-import { httpClient } from '../infrastructure/httpClient'
+import { httpClient, ApiError, BASE_URL } from '../infrastructure/httpClient'
 import { Publicacion } from '../domain/Publicacion'
+import type { TipoContenido } from '../domain/enums/TipoContenido'
+import type { EstadoPublicacion } from '../domain/enums/EstadoPublicacion'
 
 /**
  * Servicio de aplicación para publicaciones.
@@ -82,6 +84,121 @@ export function useLikePublicacion(publicacionInicial: Publicacion): UseLikePubl
   return { publicacion, enviando, alternarLike }
 }
 
+/**
+ * DTO de respuesta de `POST /api/publicaciones` (contract, sección "3.
+ * Publicaciones — Creación con tags").
+ */
+interface PublicacionCreadaDto {
+  id: string
+  autorId: string
+  tipoContenido: TipoContenido
+  estado: EstadoPublicacion
+  tags: string[]
+  urlContenido: string
+  cantidadLikes: number
+  likeadaPorMi: boolean
+  reportadaPorMi: boolean
+  creadaEn: string
+}
+
+function mapearPublicacionCreada(dto: PublicacionCreadaDto): Publicacion {
+  return new Publicacion({
+    id: dto.id,
+    autorId: dto.autorId,
+    tipoContenido: dto.tipoContenido,
+    estado: dto.estado,
+    tags: dto.tags,
+    urlContenido: dto.urlContenido,
+    cantidadLikes: dto.cantidadLikes,
+    likeadaPorMi: dto.likeadaPorMi,
+    reportadaPorMi: dto.reportadaPorMi,
+    creadaEn: new Date(dto.creadaEn),
+  })
+}
+
+export interface DatosNuevaPublicacion {
+  archivo: File
+  tipoContenido: TipoContenido
+  tagIds: string[]
+}
+
+/**
+ * Resultado de `crearPublicacion`: expone el estado y el porcentaje de
+ * progreso de la subida (FR-009) como valor de retorno. La barra de
+ * progreso visual se implementa en T040; este servicio solo entrega los
+ * datos necesarios para construirla.
+ */
+export interface ResultadoCrearPublicacion {
+  publicacion: Publicacion
+  porcentajeProgreso: number
+}
+
+/**
+ * Crea una publicación subiendo el archivo asociado (multipart/form-data)
+ * a `POST /api/publicaciones` (FR-009, US-2).
+ *
+ * `fetch` nativo no expone eventos de progreso de subida, por lo que se usa
+ * `XMLHttpRequest` únicamente en esta función (httpClient.ts permanece
+ * exclusivamente basado en `fetch` para el resto de operaciones JSON).
+ *
+ * @param onProgreso callback opcional invocado con el porcentaje (0-100)
+ * de avance de la subida.
+ */
+export async function crearPublicacion(
+  datos: DatosNuevaPublicacion,
+  onProgreso?: (porcentajeProgreso: number) => void,
+): Promise<ResultadoCrearPublicacion> {
+  const formData = new FormData()
+  formData.append('archivo', datos.archivo)
+  formData.append('tipoContenido', datos.tipoContenido)
+  datos.tagIds.forEach((tagId) => formData.append('tagIds', tagId))
+
+  return new Promise<ResultadoCrearPublicacion>((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', `${BASE_URL}/publicaciones`)
+    xhr.withCredentials = true
+
+    xhr.upload.addEventListener('progress', (evento) => {
+      if (evento.lengthComputable) {
+        const porcentaje = Math.round((evento.loaded / evento.total) * 100)
+        onProgreso?.(porcentaje)
+      }
+    })
+
+    xhr.addEventListener('load', () => {
+      let body: unknown = null
+      try {
+        body = xhr.responseText ? JSON.parse(xhr.responseText) : null
+      } catch {
+        body = xhr.responseText
+      }
+
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgreso?.(100)
+        resolve({
+          publicacion: mapearPublicacionCreada(body as PublicacionCreadaDto),
+          porcentajeProgreso: 100,
+        })
+        return
+      }
+
+      reject(new ApiError(`Error al crear la publicación (status ${xhr.status})`, xhr.status, body))
+    })
+
+    xhr.addEventListener('error', () => {
+      reject(new ApiError('Error de red al crear la publicación', 0, null))
+    })
+
+    xhr.addEventListener('abort', () => {
+      reject(new ApiError('Subida de publicación cancelada', 0, null))
+    })
+
+    xhr.send(formData)
+  })
+}
+
 export const publicacionService = {
   useLikePublicacion,
+  crearPublicacion,
 }
+
