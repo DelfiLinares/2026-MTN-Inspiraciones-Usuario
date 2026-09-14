@@ -4,9 +4,14 @@ import { RolUsuario } from '../../src/domain/enums/RolUsuario'
 
 /**
  * Tests unitarios de reglas de negocio de `Usuario`.
- * Fuente de verdad: specs/001-user-interactions/data-model.md
- * Cubre FR-040 (botón "Seguir" oculto en perfil propio o sin autenticar) y
- * FR-042 (seguir/dejar de seguir/revertir en forma optimista).
+ * Fuente de verdad: specs/001-user-interactions/tasks.md (T012) y
+ * specs/001-user-interactions/data-model.md.
+ * Cubre FR-040 (botón "Seguir" oculto en perfil propio o sin autenticar).
+ *
+ * Los tests de `aplicarSeguirOptimista()`/`aplicarDejarDeSeguirOptimista()`/
+ * `revertirCambioSeguimiento()` (FR-042) viven en un archivo dedicado,
+ * `tests/domain/Usuario.seguir.test.ts` (T090), según la división
+ * explícita en tasks.md.
  */
 
 function crearUsuario(overrides: Partial<ConstructorParameters<typeof Usuario>[0]> = {}): Usuario {
@@ -55,57 +60,6 @@ describe('Usuario', () => {
       const usuario = crearUsuario({ id: 'usuario-1' })
 
       expect(usuario.puedeVerBotonSeguir('usuario-2', true)).toBe(true)
-    })
-  })
-
-  describe('aplicarSeguirOptimista', () => {
-    it('marca sigoAEsteUsuario en true e incrementa cantidadSeguidores', () => {
-      const usuario = crearUsuario({ sigoAEsteUsuario: false, cantidadSeguidores: 10 })
-
-      const resultado = usuario.aplicarSeguirOptimista()
-
-      expect(resultado.sigoAEsteUsuario).toBe(true)
-      expect(resultado.cantidadSeguidores).toBe(11)
-    })
-
-    it('no muta la instancia original', () => {
-      const usuario = crearUsuario({ sigoAEsteUsuario: false, cantidadSeguidores: 10 })
-
-      usuario.aplicarSeguirOptimista()
-
-      expect(usuario.sigoAEsteUsuario).toBe(false)
-      expect(usuario.cantidadSeguidores).toBe(10)
-    })
-  })
-
-  describe('aplicarDejarDeSeguirOptimista', () => {
-    it('marca sigoAEsteUsuario en false y decrementa cantidadSeguidores', () => {
-      const usuario = crearUsuario({ sigoAEsteUsuario: true, cantidadSeguidores: 10 })
-
-      const resultado = usuario.aplicarDejarDeSeguirOptimista()
-
-      expect(resultado.sigoAEsteUsuario).toBe(false)
-      expect(resultado.cantidadSeguidores).toBe(9)
-    })
-
-    it('no decrementa cantidadSeguidores por debajo de 0', () => {
-      const usuario = crearUsuario({ sigoAEsteUsuario: true, cantidadSeguidores: 0 })
-
-      const resultado = usuario.aplicarDejarDeSeguirOptimista()
-
-      expect(resultado.cantidadSeguidores).toBe(0)
-    })
-  })
-
-  describe('revertirCambioSeguimiento', () => {
-    it('restaura el estado anterior a la actualización optimista', () => {
-      const previo = crearUsuario({ sigoAEsteUsuario: false, cantidadSeguidores: 10 })
-      const actualizado = previo.aplicarSeguirOptimista()
-
-      const revertido = actualizado.revertirCambioSeguimiento(previo)
-
-      expect(revertido.sigoAEsteUsuario).toBe(previo.sigoAEsteUsuario)
-      expect(revertido.cantidadSeguidores).toBe(previo.cantidadSeguidores)
     })
   })
 })
