@@ -5,7 +5,14 @@
  *
  * Fuente de verdad: specs/001-user-interactions/spec.md (US-3 AC-03.7:
  * "se muestran skeletons o placeholders en lugar de una pantalla en
- * blanco").
+ * blanco") y specs/001-user-interactions/tasks.md (T083: pase de
+ * accesibilidad, foco visible y `aria-live` en estados de carga).
+ *
+ * `aria-live="polite"` anuncia el estado de carga a tecnologías de
+ * asistencia sin interrumpir al usuario, y `tabIndex={-1}` junto con la
+ * clase `skeleton--foco-visible` permite que quien lo instancie enfoque
+ * programáticamente el placeholder (por ejemplo, tras una navegación) sin
+ * incorporarlo al orden de tabulación normal.
  *
  * Componente puro de presentación (Principio III): no invoca `fetch` ni
  * conoce ningún caso de uso; solo recibe dimensiones y estilo por props.
@@ -29,9 +36,11 @@ export function Skeleton({
 }: SkeletonProps) {
   return (
     <div
-      className={['skeleton', className].filter(Boolean).join(' ')}
+      className={['skeleton', 'skeleton--foco-visible', className].filter(Boolean).join(' ')}
       role="status"
+      aria-live="polite"
       aria-label="Cargando"
+      tabIndex={-1}
       style={{ width, height, borderRadius }}
     />
   )
