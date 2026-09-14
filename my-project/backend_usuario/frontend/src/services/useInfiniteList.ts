@@ -13,6 +13,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  * `cargando`, `hayMas`, `error`) más una `ref` de "centinela" a asignar al
  * elemento final de la lista para disparar la carga de la siguiente
  * página cuando entra en el viewport.
+ *
+ * `resetKey` (opcional): cuando cambia, reinicia el estado (`items`,
+ * cursor, `hayMas`) y vuelve a cargar desde la primera página. Lo usa
+ * `useDescubrirFiltros` (T047) para reiniciar la paginación al cambiar los
+ * criterios de `Filtro` (FR-014: actualizar resultados sin recargar la
+ * página). Si se omite, el comportamiento es idéntico al original (carga
+ * única al montar).
  */
 export interface PaginaResultado<T> {
   items: T[]
@@ -30,6 +37,7 @@ export interface UseInfiniteListResult<T> {
 
 export function useInfiniteList<T>(
   cargarPagina: (cursor: string | null) => Promise<PaginaResultado<T>>,
+  resetKey?: unknown,
 ): UseInfiniteListResult<T> {
   const [items, setItems] = useState<T[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
@@ -68,6 +76,18 @@ export function useInfiniteList<T>(
     cargarSiguiente()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (resetKey === undefined) {
+      return
+    }
+    setItems([])
+    setCursor(null)
+    setHayMas(true)
+    setError(null)
+    enCurso.current = false
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetKey])
 
   const centinelaRef = useCallback(
     (nodo: Element | null) => {
