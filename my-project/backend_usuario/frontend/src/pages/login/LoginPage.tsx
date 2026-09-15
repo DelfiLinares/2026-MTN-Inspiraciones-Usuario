@@ -4,6 +4,7 @@ import { useAuth } from '../../services/AuthContext'
 import { authService } from '../../services/authService'
 import { loginForm } from '../../services/loginForm'
 import { obtenerRutaDestinoTrasLogin } from '../../routes'
+import { ApiError } from '../../infrastructure/httpClient'
 
 /**
  * `LoginPage`: formulario base de inicio de sesión con las tres opciones
@@ -27,10 +28,13 @@ import { obtenerRutaDestinoTrasLogin } from '../../routes'
  * navega al home.
  *
  * Nota de alcance (T054): esta tarea implementa el formulario base y la
- * validación de FR-026. El mensaje de error genérico ante credenciales
- * incorrectas (FR-027, T091) y la deshabilitación del botón durante el
- * envío (FR-028, T092) se implementan en tareas posteriores sobre este
- * mismo archivo.
+ * validación de FR-026. La deshabilitación del botón durante el envío
+ * (FR-028, T092) se implementa en una tarea posterior sobre este mismo
+ * archivo.
+ *
+ * T091: ante `401 { codigo: "CREDENCIALES_INVALIDAS" }` (FR-027,
+ * `contracts/api-contracts.md`), se muestra un único mensaje de error
+ * genérico sin indicar si el mail o la contraseña son los incorrectos.
  *
  * T093: si el visitante ya tiene una sesión activa (`estaAutenticado`) al
  * acceder a `/login`, redirige al home (FR-029) sin renderizar el
@@ -45,6 +49,7 @@ export function LoginPage() {
   const navigate = useNavigate()
   const [mail, setMail] = useState('')
   const [password, setPassword] = useState('')
+  const [errorLogin, setErrorLogin] = useState<string | null>(null)
 
   const puedeEnviar = loginForm.puedeEnviarLogin(mail, password)
 
@@ -62,14 +67,30 @@ export function LoginPage() {
     if (!puedeEnviar) {
       return
     }
-    const usuario = await authService.iniciarSesionConMail(mail, password)
-    iniciarSesion(usuario)
-    navigate(obtenerRutaDestinoTrasLogin(location.state), { replace: true })
+    setErrorLogin(null)
+    try {
+      const usuario = await authService.iniciarSesionConMail(mail, password)
+      iniciarSesion(usuario)
+      navigate(obtenerRutaDestinoTrasLogin(location.state), { replace: true })
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        // FR-027: mensaje genérico único, sin indicar si el mail o la
+        // contraseña son los incorrectos.
+        setErrorLogin('Mail o contraseña incorrectos.')
+        return
+      }
+      throw error
+    }
   }
 
   return (
     <div className="login-page">
       <form onSubmit={manejarEnvio}>
+        {errorLogin && (
+          <p role="alert" className="login-page__error">
+            {errorLogin}
+          </p>
+        )}
         <label>
           Mail
           <input
