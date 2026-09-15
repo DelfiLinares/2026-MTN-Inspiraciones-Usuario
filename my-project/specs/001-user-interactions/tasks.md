@@ -346,7 +346,7 @@ Todas las ambigüedades B1–B7 fueron resueltas (ver tabla "Resumen de Ambigüe
 /speckit.clarify)" en `contracts/api-contracts.md`). Ninguna tarea queda ya bloqueada por falta de
 confirmación de backend; las marcas **⚠️ Requiere confirmación de backend antes de implementar**
 fueron removidas de las tareas afectadas.
-
+ 
 | Ambigüedad | Descripción | Resolución | Tareas afectadas |
 |---|---|---|---|
 | B1 | Criterios exactos de fortaleza de contraseña | Mínimo 8 caracteres, una mayúscula y un símbolo | T057, T059 |
