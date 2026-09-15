@@ -1,7 +1,9 @@
 import { useState, type FormEvent } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../services/AuthContext'
 import { authService } from '../../services/authService'
 import { loginForm } from '../../services/loginForm'
+import { obtenerRutaDestinoTrasLogin } from '../../routes'
 
 /**
  * `LoginPage`: formulario base de inicio de sesión con las tres opciones
@@ -10,14 +12,19 @@ import { loginForm } from '../../services/loginForm'
  *
  * Fuente de verdad: specs/001-user-interactions/spec.md (FR-025: soportar
  * los tres proveedores de autenticación; FR-026: validación en cliente
- * antes de enviar) y
- * specs/001-user-interactions/contracts/api-contracts.md (sección "1.
- * Autenticación").
+ * antes de enviar; CB-06: conservar el destino original para volver tras
+ * autenticarse) y specs/001-user-interactions/contracts/api-contracts.md
+ * (sección "1. Autenticación").
  *
  * Orquesta `authService` (T053) para ejecutar el login y `useAuth()`
  * (`AuthContext`, T020) para actualizar el estado de sesión de la
  * aplicación tras un login exitoso (Principio III: `LoginPage` no invoca
  * `fetch` directamente ni mantiene su propio estado de sesión).
+ *
+ * Tras un login exitoso con mail/contraseña, navega a la ruta original
+ * conservada por `RutaProtegida` en `location.state.desde` (CB-06, T056),
+ * usando `obtenerRutaDestinoTrasLogin`; si no hay destino conservado,
+ * navega al home.
  *
  * Nota de alcance (T054): esta tarea implementa el formulario base y la
  * validación de FR-026. El mensaje de error genérico ante credenciales
@@ -27,6 +34,8 @@ import { loginForm } from '../../services/loginForm'
  */
 export function LoginPage() {
   const { iniciarSesion } = useAuth()
+  const location = useLocation()
+  const navigate = useNavigate()
   const [mail, setMail] = useState('')
   const [password, setPassword] = useState('')
 
@@ -39,6 +48,7 @@ export function LoginPage() {
     }
     const usuario = await authService.iniciarSesionConMail(mail, password)
     iniciarSesion(usuario)
+    navigate(obtenerRutaDestinoTrasLogin(location.state), { replace: true })
   }
 
   return (
