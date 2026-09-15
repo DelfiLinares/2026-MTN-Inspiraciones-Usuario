@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAuth } from '../../services/AuthContext'
 import { perfilService } from '../../services/perfilService'
@@ -53,10 +53,22 @@ import { PublicacionCard } from '../../components/publicacion/PublicacionCard'
  * recién creada... sin [recargar]"), sin inventar un endpoint no
  * documentado para el historial completo de publicaciones del perfil.
  *
+ * Integra la creación y eliminación de carpetas (T094, `carpetaService`,
+ * T077): un formulario simple con nombre (FR-043, "indicando al menos un
+ * nombre al crearlas") bloquea la creación si ya se alcanzó el límite de
+ * 100 carpetas (`Carpeta.puedeCrearNuevaCarpeta()`, FR-047); ambas
+ * acciones solo se ofrecen en el perfil propio, ya que `carpetaService.
+ * crearCarpeta`/`eliminarCarpeta` operan sobre el usuario autenticado
+ * (`POST /api/usuarios/me/carpetas`, `DELETE /api/carpetas/{id}`). Antes
+ * de eliminar una carpeta, se solicita confirmación (`window.confirm`,
+ * mismo enfoque ya usado en `SeguirButton`, T072) con un mensaje que
+ * advierte que el contenido guardado en ella se perderá, aclarando que los
+ * posts originales no se eliminan de la plataforma (FR-045).
+ *
  * Fuera de alcance de esta tarea (tareas posteriores según `tasks.md`):
- * - Creación/eliminación de carpetas con advertencia de pérdida de
- *   contenido (T094, depende de esta tarea y de T077).
  * - Botón "Guardar en carpeta" en `PublicacionCard` (T081).
+ * - Renombrar carpeta (no forma parte del enunciado de T094; el botón
+ *   "Renombrar" de `CarpetaCard`, T078, queda sin `onRenombrar` por ahora).
  */
 export function PerfilPage() {
   const { id } = useParams<{ id: string }>()
@@ -66,6 +78,8 @@ export function PerfilPage() {
   const [error, setError] = useState<string | null>(null)
   const [carpetas, setCarpetas] = useState<Carpeta[]>([])
   const [errorCarpetas, setErrorCarpetas] = useState<string | null>(null)
+  const [nombreNuevaCarpeta, setNombreNuevaCarpeta] = useState('')
+  const [creandoCarpeta, setCreandoCarpeta] = useState(false)
   // Se llama incondicionalmente (regla de hooks de React), incluso antes de
   // que `usuarioPerfil`/`id` estén resueltos; filtra por cadena vacía hasta
   // entonces, lo que no coincide con ningún `autorId` real.
@@ -137,6 +151,47 @@ export function PerfilPage() {
 
   const esPropio = usuarioActual !== null && usuarioPerfil.esPropio(usuarioActual.id)
 
+  const manejarCrearCarpeta = async (evento: FormEvent<HTMLFormElement>) => {
+    evento.preventDefault()
+    if (nombreNuevaCarpeta.trim() === '' || !Carpeta.puedeCrearNuevaCarpeta(carpetas)) {
+      // FR-043: requiere al menos un nombre. FR-047: bloquea al llegar a
+      // 100 carpetas (el backend también lo valida, ver `carpetaService`).
+      return
+    }
+    if (!usuarioActual) {
+      return
+    }
+    setCreandoCarpeta(true)
+    setErrorCarpetas(null)
+    try {
+      const carpetaCreada = await carpetaService.crearCarpeta(nombreNuevaCarpeta.trim(), usuarioActual.id)
+      setCarpetas((actual) => [carpetaCreada, ...actual])
+      setNombreNuevaCarpeta('')
+    } catch {
+      setErrorCarpetas('No se pudo crear la carpeta. Volvé a intentarlo.')
+    } finally {
+      setCreandoCarpeta(false)
+    }
+  }
+
+  const manejarEliminarCarpeta = async (carpeta: Carpeta) => {
+    // FR-045: advertir que el contenido guardado se perderá, aclarando que
+    // los posts originales no se eliminan de la plataforma.
+    const confirmado = window.confirm(
+      `¿Eliminar la carpeta "${carpeta.nombre}"? Se perderá el contenido guardado en ella (los posts no se eliminarán de la plataforma).`,
+    )
+    if (!confirmado) {
+      return
+    }
+    setErrorCarpetas(null)
+    try {
+      await carpetaService.eliminarCarpeta(carpeta.id)
+      setCarpetas((actual) => actual.filter((c) => c.id !== carpeta.id))
+    } catch {
+      setErrorCarpetas('No se pudo eliminar la carpeta. Volvé a intentarlo.')
+    }
+  }
+
   return (
     <div className="perfil-page">
       {usuarioPerfil.fotoUrl && (
@@ -159,9 +214,36 @@ export function PerfilPage() {
       <section>
         <h2>Carpetas</h2>
         {errorCarpetas && <p role="alert">{errorCarpetas}</p>}
+        {esPropio && (
+          <form onSubmit={manejarCrearCarpeta}>
+            <label>
+              Nueva carpeta
+              <input
+                type="text"
+                value={nombreNuevaCarpeta}
+                onChange={(evento) => setNombreNuevaCarpeta(evento.target.value)}
+              />
+            </label>
+            <button
+              type="submit"
+              disabled={
+                creandoCarpeta ||
+                nombreNuevaCarpeta.trim() === '' ||
+                !Carpeta.puedeCrearNuevaCarpeta(carpetas)
+              }
+            >
+              Crear carpeta
+            </button>
+          </form>
+        )}
         <div className="perfil-page__carpetas" style={{ overflowY: 'auto', maxHeight: '24rem' }}>
           {carpetas.map((carpeta) => (
-            <CarpetaCard key={carpeta.id} carpeta={carpeta} usuarioActualId={usuarioActual?.id ?? ''} />
+            <CarpetaCard
+              key={carpeta.id}
+              carpeta={carpeta}
+              usuarioActualId={usuarioActual?.id ?? ''}
+              onEliminar={() => manejarEliminarCarpeta(carpeta)}
+            />
           ))}
         </div>
       </section>
