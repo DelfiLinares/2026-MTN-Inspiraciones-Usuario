@@ -1,14 +1,15 @@
+import { useCallback, useRef, useState } from 'react'
 import { ApiError, BASE_URL, httpClient } from '../infrastructure/httpClient'
 import { Usuario } from '../domain/Usuario'
 import { RolUsuario } from '../domain/enums/RolUsuario'
 
 /**
  * Servicio de aplicación para la visualización y edición de perfil de
- * usuario (HU-06).
+ * usuario (HU-06) y para seguir/dejar de seguir usuarios (HU-08).
  *
  * Fuente de verdad: specs/001-user-interactions/contracts/api-contracts.md
- * (sección "6. Perfil y edición (HU-06)") y specs/001-user-interactions/spec.md
- * (FR-035..FR-039).
+ * (secciones "6. Perfil y edición (HU-06)" y "7. Seguir usuarios (HU-08)") y
+ * specs/001-user-interactions/spec.md (FR-035..FR-039, FR-042).
  *
  * Expone:
  * - `obtenerUsuario`: `GET /api/usuarios/{id}`, mapea al dominio `Usuario`
@@ -29,6 +30,13 @@ import { RolUsuario } from '../domain/enums/RolUsuario'
  *   ya establecido en `publicacionService.crearPublicacion` para subidas de
  *   archivos. Si no se incluyen archivos, se usa `httpClient.patch` con
  *   cuerpo JSON.
+ * - `useSeguirUsuario`: hook que aplica la actualización optimista de
+ *   `Usuario.aplicarSeguirOptimista()`/`aplicarDejarDeSeguirOptimista()`
+ *   (T011) y llama a `POST`/`DELETE /api/usuarios/{id}/seguir` (FR-042).
+ *   Ante error de la API, revierte con `Usuario.revertirCambioSeguimiento()`
+ *   y expone un error no bloqueante. La confirmación previa a dejar de
+ *   seguir (FR-041) y el ocultamiento en el perfil propio (FR-040) son
+ *   responsabilidad de `SeguirButton` (T072), que consumirá este hook.
  */
 
 interface UsuarioDto {
@@ -145,7 +153,87 @@ async function actualizarPerfil(datos: DatosEdicionPerfil): Promise<Usuario> {
   return mapearUsuario(dto)
 }
 
+interface SeguirResponseDto {
+  cantidadSeguidores: number
+}
+
+export interface UseSeguirUsuarioResult {
+  /** Usuario con el estado de seguimiento más reciente (optimista o confirmado). */
+  usuario: Usuario
+  /** `true` mientras hay una solicitud de seguir/dejar de seguir en curso. */
+  enviando: boolean
+  /** Mensaje de error no bloqueante ante una falla de la operación, o `null`. */
+  error: string | null
+  /** Alterna el estado de seguimiento del usuario actual. */
+  alternarSeguir: () => Promise<void>
+}
+
+/**
+ * Hook que aplica la actualización optimista del conteo de seguidores al
+ * seguir/dejar de seguir a un usuario (FR-042), llamando a
+ * `POST`/`DELETE /api/usuarios/{id}/seguir`. Ante error de la API, revierte
+ * el estado con `Usuario.revertirCambioSeguimiento()` y expone un mensaje
+ * de error no bloqueante en `error`.
+ */
+export function useSeguirUsuario(usuarioInicial: Usuario): UseSeguirUsuarioResult {
+  const [usuario, setUsuario] = useState(usuarioInicial)
+  const [enviando, setEnviando] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
+
+  const alternarSeguir = useCallback(async () => {
+    abortControllerRef.current?.abort()
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+
+    const anterior = usuario
+    const yaSeguido = anterior.sigoAEsteUsuario
+
+    // FR-042: aplica el cambio optimista sin esperar la respuesta de la API.
+    const optimista = yaSeguido
+      ? anterior.aplicarDejarDeSeguirOptimista()
+      : anterior.aplicarSeguirOptimista()
+    setUsuario(optimista)
+    setEnviando(true)
+    setError(null)
+
+    try {
+      const dto = yaSeguido
+        ? await httpClient.delete<SeguirResponseDto>(`/usuarios/${anterior.id}/seguir`, {
+            signal: controller.signal,
+          })
+        : await httpClient.post<SeguirResponseDto>(
+            `/usuarios/${anterior.id}/seguir`,
+            undefined,
+            { signal: controller.signal },
+          )
+
+      setUsuario(
+        (actual) => new Usuario({ ...actual, cantidadSeguidores: dto.cantidadSeguidores }),
+      )
+    } catch (error_) {
+      if (controller.signal.aborted) {
+        return
+      }
+      // FR-042: revertir el estado ante error de API y mostrar un mensaje
+      // de error no bloqueante.
+      setUsuario(anterior.revertirCambioSeguimiento(anterior))
+      setError('No se pudo actualizar el seguimiento. Volvé a intentarlo.')
+      if (!(error_ instanceof ApiError)) {
+        throw error_
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setEnviando(false)
+      }
+    }
+  }, [usuario])
+
+  return { usuario, enviando, error, alternarSeguir }
+}
+
 export const perfilService = {
   obtenerUsuario,
   actualizarPerfil,
+  useSeguirUsuario,
 }
