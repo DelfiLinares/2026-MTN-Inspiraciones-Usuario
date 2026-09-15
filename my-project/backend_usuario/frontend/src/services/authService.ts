@@ -3,22 +3,26 @@ import { mailPasswordProvider } from '../infrastructure/authProviders/mailPasswo
 import { googleProvider } from '../infrastructure/authProviders/googleProvider'
 import { githubProvider } from '../infrastructure/authProviders/githubProvider'
 import { Usuario } from '../domain/Usuario'
+import { RolUsuario } from '../domain/enums/RolUsuario'
 
 /**
  * Servicio de aplicación `authService`: orquesta los tres proveedores de
  * autenticación (`mailPasswordProvider` T050, `googleProvider` T051,
- * `githubProvider` T052), login/logout, y alimenta `AuthContext` (T020).
+ * `githubProvider` T052), login/logout/registro, y alimenta `AuthContext`
+ * (T020).
  *
  * Fuente de verdad: specs/001-user-interactions/contracts/api-contracts.md
  * (sección "1. Autenticación": `POST /api/auth/login`,
- * `POST /api/auth/logout`, `GET /api/auth/oauth/{provider}/...`) y
- * specs/001-user-interactions/spec.md (FR-025 a FR-029, FR-034).
+ * `POST /api/auth/register`, `POST /api/auth/logout`,
+ * `GET /api/auth/oauth/{provider}/...`) y
+ * specs/001-user-interactions/spec.md (FR-025 a FR-034).
  *
  * Este servicio es agnóstico de React: no invoca hooks directamente. Quien
- * lo consuma (`LoginPage` T054, `AuthCallbackPage` T055) es responsable de
- * llamar a `useAuth().iniciarSesion(usuario)` / `cerrarSesion()` (T020)
- * con el resultado de estas funciones, manteniendo `AuthContext` como la
- * única fuente de verdad del estado de sesión en la UI (Principio III).
+ * lo consuma (`LoginPage` T054, `AuthCallbackPage` T055, `RegistroPage`
+ * T059) es responsable de llamar a `useAuth().iniciarSesion(usuario)` /
+ * `cerrarSesion()` (T020) con el resultado de estas funciones, manteniendo
+ * `AuthContext` como la única fuente de verdad del estado de sesión en la
+ * UI (Principio III).
  *
  * Confirmado (B2) vía `/speckit.clarify`: el flujo OAuth usa la ruta propia
  * de callback del frontend (`/auth/callback/:provider`); ver `googleProvider`
@@ -27,11 +31,54 @@ import { Usuario } from '../domain/Usuario'
 
 export type ProveedorOAuth = 'google' | 'github'
 
+/** Código de error devuelto por `POST /api/auth/register` (FR-032). */
+export const CODIGO_EMAIL_YA_REGISTRADO = 'EMAIL_YA_REGISTRADO'
+
+interface RegistroResponseDto {
+  usuario: {
+    id: string
+    nombre: string
+    apellido: string
+    fotoUrl: string | null
+  }
+}
+
+function mapearUsuarioRegistro(dto: RegistroResponseDto['usuario']): Usuario {
+  return new Usuario({
+    id: dto.id,
+    nombre: dto.nombre,
+    apellido: dto.apellido,
+    bio: null,
+    fotoUrl: dto.fotoUrl,
+    rol: RolUsuario.USER,
+    cantidadSeguidores: 0,
+    sigoAEsteUsuario: false,
+  })
+}
+
 /**
  * Inicia sesión con mail y contraseña (`mailPasswordProvider`, T050).
  */
 function iniciarSesionConMail(email: string, password: string): Promise<Usuario> {
   return mailPasswordProvider.iniciarSesion(email, password)
+}
+
+/**
+ * Registra un nuevo usuario (`POST /api/auth/register`, mismo shape de
+ * respuesta que login). Ante `409 { codigo: "EMAIL_YA_REGISTRADO" }`
+ * (FR-032), `httpClient` lanza `ApiError` con ese código en `error.body`;
+ * la capa de presentación (`RegistroPage`, T059) es responsable de
+ * mostrar el mensaje claro correspondiente, sin revelar información
+ * innecesaria.
+ */
+async function registrar(datos: {
+  nombre: string
+  apellido: string
+  email: string
+  password: string
+}): Promise<Usuario> {
+  const dto = await httpClient.post<RegistroResponseDto>('/auth/register', datos)
+  return mapearUsuarioRegistro(dto.usuario)
 }
 
 /**
@@ -68,6 +115,7 @@ async function cerrarSesion(): Promise<void> {
 
 export const authService = {
   iniciarSesionConMail,
+  registrar,
   iniciarSesionConOAuth,
   completarCallbackOAuth,
   cerrarSesion,
