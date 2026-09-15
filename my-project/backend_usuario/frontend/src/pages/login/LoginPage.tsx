@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../services/AuthContext'
 import { authService } from '../../services/authService'
 import { loginForm } from '../../services/loginForm'
@@ -28,18 +28,34 @@ import { obtenerRutaDestinoTrasLogin } from '../../routes'
  *
  * Nota de alcance (T054): esta tarea implementa el formulario base y la
  * validación de FR-026. El mensaje de error genérico ante credenciales
- * incorrectas (FR-027, T091), la deshabilitación del botón durante el
- * envío (FR-028, T092) y la redirección si ya hay sesión activa (FR-029,
- * T093) se implementan en tareas posteriores sobre este mismo archivo.
+ * incorrectas (FR-027, T091) y la deshabilitación del botón durante el
+ * envío (FR-028, T092) se implementan en tareas posteriores sobre este
+ * mismo archivo.
+ *
+ * T093: si el visitante ya tiene una sesión activa (`estaAutenticado`) al
+ * acceder a `/login`, redirige al home (FR-029) sin renderizar el
+ * formulario, en vez de permitir un segundo inicio de sesión superpuesto.
+ * Mientras `AuthContext` (T020) todavía está determinando el estado de
+ * sesión (`cargando`), no se redirige ni se renderiza el formulario, para
+ * evitar un parpadeo del formulario antes de confirmar que no hay sesión.
  */
 export function LoginPage() {
-  const { iniciarSesion } = useAuth()
+  const { iniciarSesion, estaAutenticado, cargando } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const [mail, setMail] = useState('')
   const [password, setPassword] = useState('')
 
   const puedeEnviar = loginForm.puedeEnviarLogin(mail, password)
+
+  if (cargando) {
+    return null
+  }
+
+  if (estaAutenticado) {
+    // FR-029: un usuario ya autenticado que accede a /login es redirigido al home.
+    return <Navigate to="/" replace />
+  }
 
   const manejarEnvio = async (evento: FormEvent<HTMLFormElement>) => {
     evento.preventDefault()
