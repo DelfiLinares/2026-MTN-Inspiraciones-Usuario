@@ -36,6 +36,9 @@ import { ApiError } from '../../infrastructure/httpClient'
  * `contracts/api-contracts.md`), se muestra un único mensaje de error
  * genérico sin indicar si el mail o la contraseña son los incorrectos.
  *
+ * T092: mientras el login está en progreso (`enviando`), el botón de
+ * submit se deshabilita para evitar envíos duplicados (FR-028).
+ *
  * T093: si el visitante ya tiene una sesión activa (`estaAutenticado`) al
  * acceder a `/login`, redirige al home (FR-029) sin renderizar el
  * formulario, en vez de permitir un segundo inicio de sesión superpuesto.
@@ -50,8 +53,9 @@ export function LoginPage() {
   const [mail, setMail] = useState('')
   const [password, setPassword] = useState('')
   const [errorLogin, setErrorLogin] = useState<string | null>(null)
+  const [enviando, setEnviando] = useState(false)
 
-  const puedeEnviar = loginForm.puedeEnviarLogin(mail, password)
+  const puedeEnviar = loginForm.puedeEnviarLogin(mail, password) && !enviando
 
   if (cargando) {
     return null
@@ -68,6 +72,7 @@ export function LoginPage() {
       return
     }
     setErrorLogin(null)
+    setEnviando(true)
     try {
       const usuario = await authService.iniciarSesionConMail(mail, password)
       iniciarSesion(usuario)
@@ -80,6 +85,11 @@ export function LoginPage() {
         return
       }
       throw error
+    } finally {
+      // FR-028: rehabilitar el botón al finalizar (éxito o error) para
+      // permitir un nuevo intento; en el caso de éxito, de todas formas
+      // se navega fuera de esta pantalla.
+      setEnviando(false)
     }
   }
 
