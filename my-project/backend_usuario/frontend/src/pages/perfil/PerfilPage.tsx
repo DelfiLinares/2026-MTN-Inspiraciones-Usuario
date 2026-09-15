@@ -3,10 +3,12 @@ import { useParams } from 'react-router-dom'
 import { useAuth } from '../../services/AuthContext'
 import { perfilService } from '../../services/perfilService'
 import { carpetaService } from '../../services/carpetaService'
+import { publicacionesPropiasStore } from '../../services/publicacionesPropiasStore'
 import { Usuario } from '../../domain/Usuario'
 import { Carpeta } from '../../domain/Carpeta'
 import { SeguirButton } from '../../components/perfil/SeguirButton'
 import { CarpetaCard } from '../../components/carpetas/CarpetaCard'
+import { PublicacionCard } from '../../components/publicacion/PublicacionCard'
 
 /**
  * `PerfilPage`: visualización de los datos de un perfil de usuario, propio
@@ -15,7 +17,9 @@ import { CarpetaCard } from '../../components/carpetas/CarpetaCard'
  * Fuente de verdad: specs/001-user-interactions/tasks.md (T065: "visualización
  * de datos propios/ajenos usando `Usuario.esPropio()`"; T074: "Integrar
  * `SeguirButton` en `PerfilPage`"; T080: "Integrar listado de carpetas
- * (hasta 100, con scroll/paginación si es necesario — FR-047)") y
+ * (hasta 100, con scroll/paginación si es necesario — FR-047)"; T087:
+ * "Mostrar publicaciones propias en `PerfilPage` sin recargar la página
+ * tras crear una publicación (cierra FR-011)") y
  * specs/001-user-interactions/data-model.md (entidad `Usuario`:
  * `esPropio(usuarioActualId)`).
  *
@@ -40,8 +44,16 @@ import { CarpetaCard } from '../../components/carpetas/CarpetaCard'
  * interfaz al mostrar hasta 100 tarjetas sin requerir carga incremental
  * adicional.
  *
+ * Muestra las publicaciones propias creadas durante la sesión actual
+ * (T087) suscribiéndose a `publicacionesPropiasStore` (poblado por
+ * `HomePage`/T041 al crear una publicación), filtradas por el `id` del
+ * perfil que se está visualizando. No existe en `contracts/api-contracts.md`
+ * un endpoint para listar históricamente las publicaciones de un usuario;
+ * por eso esta tarea se limita a cerrar FR-011 ("mostrar la publicación
+ * recién creada... sin [recargar]"), sin inventar un endpoint no
+ * documentado para el historial completo de publicaciones del perfil.
+ *
  * Fuera de alcance de esta tarea (tareas posteriores según `tasks.md`):
- * - Publicaciones propias del usuario (T087, depende de T041).
  * - Creación/eliminación de carpetas con advertencia de pérdida de
  *   contenido (T094, depende de esta tarea y de T077).
  * - Botón "Guardar en carpeta" en `PublicacionCard` (T081).
@@ -54,6 +66,10 @@ export function PerfilPage() {
   const [error, setError] = useState<string | null>(null)
   const [carpetas, setCarpetas] = useState<Carpeta[]>([])
   const [errorCarpetas, setErrorCarpetas] = useState<string | null>(null)
+  // Se llama incondicionalmente (regla de hooks de React), incluso antes de
+  // que `usuarioPerfil`/`id` estén resueltos; filtra por cadena vacía hasta
+  // entonces, lo que no coincide con ningún `autorId` real.
+  const publicacionesPropias = publicacionesPropiasStore.usePublicacionesCreadasPor(id ?? '')
 
   useEffect(() => {
     if (!id) {
@@ -149,6 +165,15 @@ export function PerfilPage() {
           ))}
         </div>
       </section>
+
+      {esPropio && publicacionesPropias.length > 0 && (
+        <section>
+          <h2>Publicaciones</h2>
+          {publicacionesPropias.map((publicacion) => (
+            <PublicacionCard key={publicacion.id} publicacion={publicacion} />
+          ))}
+        </section>
+      )}
     </div>
   )
 }

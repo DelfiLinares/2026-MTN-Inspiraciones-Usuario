@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { useInfiniteList } from '../../services/useInfiniteList'
 import { feedService } from '../../services/feedService'
+import { publicacionesPropiasStore } from '../../services/publicacionesPropiasStore'
 import { PublicacionCard } from '../../components/publicacion/PublicacionCard'
 import { Skeleton } from '../../components/comunes/Skeleton'
 import { PublicacionForm } from '../../components/publicacion/PublicacionForm'
@@ -17,7 +18,10 @@ import type { Publicacion } from '../../domain/Publicacion'
  *
  * T041: integra el botón "Nueva publicación", que abre el modal
  * `PublicacionForm` (T040). Al crearse una publicación exitosamente
- * (FR-011), se antepone al feed local sin recargar la página.
+ * (FR-011), se antepone al feed local sin recargar la página, y además se
+ * registra en `publicacionesPropiasStore` (T087) para que `PerfilPage`
+ * también la muestre sin recargar, sin depender de un endpoint de listado
+ * de publicaciones por usuario (inexistente en `contracts/api-contracts.md`).
  */
 export function HomePage() {
   const cargarPagina = useCallback((cursor: string | null) => feedService.obtenerPagina(cursor), [])
@@ -27,6 +31,7 @@ export function HomePage() {
 
   const manejarPublicacionCreada = useCallback((publicacion: Publicacion) => {
     setPublicacionesPropias((actual) => [publicacion, ...actual])
+    publicacionesPropiasStore.registrarPublicacionCreada(publicacion)
   }, [])
 
   return (
